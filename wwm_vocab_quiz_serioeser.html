@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wer wird Millionär – Vokabeltrainer</title>
+  <style>
+    :root{
+      --bg1:#040814;
+      --bg2:#081a48;
+      --panel:#0f255f;
+      --panel2:#14337d;
+      --gold:#ffcc4d;
+      --gold2:#ff9f1c;
+      --text:#f5f7ff;
+      --muted:#b8c3ea;
+      --correct:#1db954;
+      --wrong:#d62839;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial,Helvetica,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 50% 35%, rgba(76,201,240,.10), transparent 18%),
+        radial-gradient(circle at 50% 45%, rgba(255,204,77,.08), transparent 28%),
+        radial-gradient(circle at center, #10296d 0%, #081a48 28%, #050d24 58%, #02050d 100%);
+      min-height:100vh;
+    }
+    .wrap{
+      max-width:1300px;
+      margin:0 auto;
+      padding:18px;
+      display:grid;
+      grid-template-columns:1.8fr 0.9fr;
+      gap:18px;
+      min-height:100vh;
+    }
+    .main,.side{
+      background:linear-gradient(180deg, rgba(16,41,109,.9), rgba(6,16,42,.92));
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:0 18px 45px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
+      border-radius:20px;
+    }
+    .main{padding:24px;display:flex;flex-direction:column;justify-content:space-between;}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+    .logo{font-size:30px;font-weight:800;letter-spacing:.5px;color:#fff;text-shadow:0 0 14px rgba(255,204,77,.32);}
+    .logo small{display:block;font-size:14px;color:var(--muted);font-weight:600;margin-top:4px;}
+    .status{display:flex;gap:10px;flex-wrap:wrap;}
+    .pill{
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:999px;
+      padding:10px 14px;
+      min-width:130px;
+      text-align:center;
+      font-weight:700;
+    }
+    .pill span{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:2px;}
+    .stage{
+      margin:10px auto 16px;
+      width:min(640px,100%);
+      aspect-ratio:1.9/1;
+      border-radius:50%;
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:
+        radial-gradient(circle at center, rgba(255,255,255,.06) 0 16%, transparent 16.5%),
+        radial-gradient(circle at center, rgba(76,201,240,.18) 0 28%, transparent 28.5%),
+        radial-gradient(circle at center, rgba(255,204,77,.10) 0 44%, transparent 44.5%),
+        radial-gradient(circle at center, rgba(255,255,255,.05) 0 60%, transparent 60.5%);
+      border:1px solid rgba(255,255,255,.06);
+      overflow:hidden;
+    }
+    .stage::before{
+      content:"";
+      position:absolute;
+      inset:8% 4%;
+      border-radius:50%;
+      border:2px solid rgba(255,204,77,.22);
+      pointer-events:none;
+    }
+    .stage::after{
+      content:"";
+      position:absolute;
+      width:160%;
+      height:2px;
+      background:linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+      transform:rotate(-14deg);
+      opacity:.5;
+    }
+    .question-box{
+      width:min(760px,100%);
+      margin:0 auto;
+      background:linear-gradient(180deg, rgba(18,49,124,.92), rgba(11,28,72,.96));
+      border:2px solid rgba(255,204,77,.45);
+      border-radius:26px;
+      padding:22px 26px;
+      text-align:center;
+      box-shadow:0 0 0 3px rgba(255,255,255,.03) inset, 0 8px 26px rgba(0,0,0,.25);
+    }
+    .question-number{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);font-weight:700;margin-bottom:10px;}
+    .question{font-size:clamp(22px,2.5vw,32px);font-weight:800;line-height:1.3;}
+    .answers{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;margin-top:24px;}
+    .answer{
+      background:linear-gradient(180deg, #1a3f97, #0a1d4d);
+      border:2px solid rgba(255,204,77,.42);
+      border-radius:999px;
+      padding:16px 20px;
+      text-align:left;
+      color:white;
+      font-size:18px;
+      font-weight:700;
+      cursor:pointer;
+      transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+      box-shadow:0 8px 18px rgba(0,0,0,.2);
+    }
+    .answer:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 22px rgba(0,0,0,.28);background:linear-gradient(180deg, #224ebb, #10286b);}
+    .answer:disabled{cursor:default;opacity:.98;}
+    .answer .key{color:var(--gold);margin-right:10px;font-weight:900;}
+    .answer.correct{background:linear-gradient(180deg, #24c761, #12833c);border-color:#a8ffd0;}
+    .answer.wrong{background:linear-gradient(180deg, #ef4d61, #a31628);border-color:#ffd0d7;}
+    .answer.removed{visibility:hidden;pointer-events:none;}
+    .answer.locked{outline:3px solid rgba(255,204,77,.9);box-shadow:0 0 0 3px rgba(255,204,77,.18), 0 10px 20px rgba(0,0,0,.28);}
+    .controls{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:22px;flex-wrap:wrap;}
+    .jokers{display:flex;gap:10px;flex-wrap:wrap;}
+    .joker,.action-btn,.restart{
+      border:none;border-radius:999px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer;color:#fff;transition:transform .12s ease, opacity .12s ease;
+    }
+    .joker{background:linear-gradient(180deg, #304e9c, #182f6e);border:1px solid rgba(255,255,255,.1);min-width:102px;}
+    .joker:hover:not(:disabled),.action-btn:hover:not(:disabled),.restart:hover{transform:translateY(-1px);}
+    .joker:disabled{opacity:.38;cursor:not-allowed;}
+    .action-btn{background:linear-gradient(180deg, #ffb703, #ef8f00);color:#09122e;min-width:170px;}
+    .restart{background:linear-gradient(180deg, #17bebb, #0b8d8b);color:#041328;}
+    .message{margin-top:16px;min-height:28px;text-align:center;font-weight:700;color:#e9efff;}
+    .side{padding:18px;display:flex;flex-direction:column;gap:16px;}
+    .side h2{margin:0 0 4px;font-size:18px;color:var(--gold);letter-spacing:.4px;}
+    .money-box,.help-box{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;}
+    .ladder{display:flex;flex-direction:column-reverse;gap:8px;margin-top:10px;}
+    .step{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:999px;background:rgba(255,255,255,.045);border:1px solid transparent;font-weight:700;}
+    .step.safe{border-color:rgba(255,204,77,.3);color:#ffe39e;}
+    .step.current{background:linear-gradient(180deg, #ffbf00, #e88d00);color:#061126;border-color:#fff0bf;}
+    .step.done{background:linear-gradient(180deg, #2258cf, #15327e);}
+    .step-num{opacity:.85;font-size:13px;}
+    .small{color:var(--muted);font-size:13px;line-height:1.45;}
+    .final-screen{text-align:center;padding:20px 10px 4px;}
+    .final-screen h3{font-size:34px;margin:10px 0 8px;color:var(--gold);}
+    .final-screen p{font-size:18px;color:#edf2ff;}
+    @media (max-width:980px){
+      .wrap{grid-template-columns:1fr;}
+      .answers{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="main">
+      <div>
+        <div class="topbar">
+          <div class="logo">
+            Wer wird Millionär?
+            <small>Vokabeltrainer – Spanisch → Deutsch</small>
+          </div>
+          <div class="status">
+            <div class="pill"><span>Aktuell sicher</span><strong id="safeMoney">0 €</strong></div>
+            <div class="pill"><span>Aktuelle Stufe</span><strong id="currentPrizeTop">50 €</strong></div>
+            <div class="pill"><span>Bereits gewonnen</span><strong id="guaranteedTop">0 €</strong></div>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div class="question-box" id="gameArea">
+            <div class="question-number" id="questionNumber">Frage 1 von 12</div>
+            <div class="question" id="questionText">Lädt...</div>
+            <div class="answers" id="answers"></div>
+
+            <div class="controls">
+              <div class="jokers">
+                <button class="joker" id="joker5050">50:50</button>
+                <button class="joker" id="jokerAudience">Publikum</button>
+                <button class="joker" id="jokerSwitch">Frage tauschen</button>
+              </div>
+              <button class="action-btn" id="walkAwayBtn">Mit Gewinn aussteigen</button>
+            </div>
+            <div class="message" id="message"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="money-box">
+        <h2>Gewinnleiter</h2>
+        <div class="small">Sicherheitsstufen: 500 € und 16.000 €</div>
+        <div class="ladder" id="ladder"></div>
+      </div>
+
+      <div class="help-box">
+        <h2>Joker</h2>
+        <div class="small">
+          <strong>50:50</strong>: Zwei falsche Antworten verschwinden.<br><br>
+          <strong>Publikum</strong>: Gibt dir einen Hinweis, welche Antwort am wahrscheinlichsten richtig ist.<br><br>
+          <strong>Frage tauschen</strong>: Ersetzt die aktuelle Frage durch eine andere.
+        </div>
+      </div>
+
+      <div class="help-box">
+        <h2>So funktioniert's</h2>
+        <div class="small">
+          Beantworte die Vokabelfragen der Reihe nach. Nach jeder richtigen Antwort steigst du eine Gewinnstufe auf.
+          Du kannst jederzeit mit dem bisher sicheren Gewinn aussteigen.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const prizeLadder = [50, 100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 1000000];
+    const safeLevels = [500, 16000];
+
+    const rawQuestions = [
+      ["español, española", "spanisch"],
+      ["el tiempo libre", "die Freizeit"],
+      ["el tiempo", "die Zeit / das Wetter"],
+      ["libre", "frei"],
+      ["salir", "ausgehen"],
+      ["escuchar algo / a alguien", "etwas / jemandem zuhören"],
+      ["la música", "die Musik"],
+      ["viajar", "reisen"],
+      ["usar algo", "etwas benutzen"],
+      ["ver algo / a alguien", "etwas / jemanden sehen"],
+      ["la televisión", "der Fernseher / das Fernsehen"],
+      ["el concierto", "das Konzert"],
+      ["la radio", "das Radio"],
+      ["el bar", "die Bar / Kneipe"],
+      ["el periódico", "die Zeitung"],
+      ["la revista", "die Zeitschrift"],
+      ["la exposición", "die Ausstellung"],
+      ["charlar / chatear", "chatten"],
+      ["la fiesta", "die Party"],
+      ["el plan", "der Plan"],
+      ["alemán", "deutsch"],
+      ["el chat", "der Chat"],
+      ["¿Qué pasa?", "Was ist los? / Was gibt's?"],
+      ["gustar + Inf.", "gern etwas tun"],
+      ["el rap", "der Rap"],
+      ["súper", "total / super"],
+      ["hacer cola", "sich anstellen"],
+      ["la cola", "die Warteschlange"],
+      ["la entrada", "die Eintrittskarte / der Eingang"],
+      ["¡Mola!", "Das ist ja cool!"],
+      ["¡Qué + Sust.!", "Was für ein / eine ...!"],
+      ["la sorpresa", "die Überraschung"],
+      ["contestar (algo)", "(etwas) beantworten"],
+      ["estar nervioso / nerviosa", "nervös sein / aufgeregt sein"],
+      ["estar cansado / cansada", "müde sein / erschöpft sein"],
+      ["es que", "es ist nämlich so, dass"],
+      ["no entiendo nada", "ich verstehe nichts"],
+      ["entender algo / a alguien", "etwas / jemanden verstehen"],
+      ["tomar el pelo a alguien", "jemanden auf den Arm nehmen"],
+      ["pasar", "Zeit verbringen"],
+      ["el fin de semana", "das Wochenende"],
+      ["los fines de semana", "die Wochenenden"]
+    ];
+
+    function shuffle(arr){
+      const copy = [...arr];
+      for(let i=copy.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function buildGameQuestions() {
+      const shuffledBase = shuffle(rawQuestions);
+      const selected = shuffledBase.slice(0, prizeLadder.length);
+
+      return selected.map(([term, correct]) => {
+        const wrongPool = rawQuestions.map(q => q[1]).filter(a => a !== correct);
+        const wrongs = shuffle(wrongPool).slice(0,3);
+        const options = shuffle([correct, ...wrongs]);
+        return {
+          question: `Was heißt „${term}“ auf Deutsch?`,
+          correct,
+          options
+        };
+      });
+    }
+
+    let questions = buildGameQuestions();
+    let currentIndex = 0;
+    let locked = false;
+    let guaranteedMoney = 0;
+    let wonMoney = 0;
+
+    const jokerState = { fifty:true, audience:true, change:true };
+
+    let questionNumberEl = document.getElementById("questionNumber");
+    let questionTextEl = document.getElementById("questionText");
+    let answersEl = document.getElementById("answers");
+    let messageEl = document.getElementById("message");
+    let ladderEl = document.getElementById("ladder");
+    let safeMoneyEl = document.getElementById("safeMoney");
+    let currentPrizeTopEl = document.getElementById("currentPrizeTop");
+    let guaranteedTopEl = document.getElementById("guaranteedTop");
+    let joker5050Btn = document.getElementById("joker5050");
+    let jokerAudienceBtn = document.getElementById("jokerAudience");
+    let jokerSwitchBtn = document.getElementById("jokerSwitch");
+    let walkAwayBtn = document.getElementById("walkAwayBtn");
+
+    function formatMoney(amount){
+      return amount.toLocaleString("de-DE") + " €";
+    }
+
+    function updateTopInfo(){
+      const currentPrize = prizeLadder[Math.min(currentIndex, prizeLadder.length-1)];
+      safeMoneyEl.textContent = formatMoney(guaranteedMoney);
+      currentPrizeTopEl.textContent = formatMoney(currentPrize);
+      guaranteedTopEl.textContent = formatMoney(wonMoney);
+    }
+
+    function renderLadder(){
+      ladderEl.innerHTML = "";
+      prizeLadder.forEach((amount, index) => {
+        const step = document.createElement("div");
+        step.className = "step";
+        if (safeLevels.includes(amount)) step.classList.add("safe");
+        if (index < currentIndex) step.classList.add("done");
+        if (index === currentIndex) step.classList.add("current");
+        step.innerHTML = `<span class="step-num">${index + 1}</span><span>${formatMoney(amount)}</span>`;
+        ladderEl.appendChild(step);
+      });
+    }
+
+    function renderQuestion(){
+      updateTopInfo();
+      renderLadder();
+      messageEl.textContent = "";
+      locked = false;
+
+      const q = questions[currentIndex];
+      questionNumberEl.textContent = `Frage ${currentIndex + 1} von ${questions.length}`;
+      questionTextEl.textContent = q.question;
+      answersEl.innerHTML = "";
+
+      const letters = ["A", "B", "C", "D"];
+      q.options.forEach((option, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "answer";
+        btn.innerHTML = `<span class="key">${letters[idx]}:</span> ${option}`;
+        btn.dataset.answer = option;
+        btn.addEventListener("click", () => answerQuestion(btn, option));
+        answersEl.appendChild(btn);
+      });
+
+      walkAwayBtn.disabled = currentIndex === 0;
+      joker5050Btn.disabled = !jokerState.fifty;
+      jokerAudienceBtn.disabled = !jokerState.audience;
+      jokerSwitchBtn.disabled = !jokerState.change;
+    }
+
+    function updateGuaranteedMoney() {
+      const justWon = prizeLadder[currentIndex - 1] || 0;
+      wonMoney = justWon;
+      if (safeLevels.includes(justWon)) guaranteedMoney = justWon;
+    }
+
+    function disableAllAnswers(){
+      document.querySelectorAll(".answer").forEach(btn => btn.disabled = true);
+    }
+
+    function answerQuestion(btn, option){
+      if (locked) return;
+      locked = true;
+      disableAllAnswers();
+
+      const q = questions[currentIndex];
+      btn.classList.add("locked");
+
+      setTimeout(() => {
+        const allBtns = [...document.querySelectorAll(".answer")];
+        const correctBtn = allBtns.find(b => b.dataset.answer === q.correct);
+
+        if(option === q.correct){
+          if (correctBtn) {
+            correctBtn.classList.remove("locked");
+            correctBtn.classList.add("correct");
+          }
+          messageEl.textContent = "Richtig! Du gehst eine Stufe weiter.";
+          currentIndex++;
+          updateGuaranteedMoney();
+
+          setTimeout(() => {
+            if(currentIndex >= questions.length){
+              showFinalScreen(true, wonMoney);
+            } else {
+              renderQuestion();
+            }
+          }, 1350);
+        } else {
+          btn.classList.remove("locked");
+          btn.classList.add("wrong");
+          if(correctBtn) correctBtn.classList.add("correct");
+          messageEl.textContent = "Leider falsch.";
+          setTimeout(() => {
+            showFinalScreen(false, guaranteedMoney);
+          }, 1700);
+        }
+      }, 650);
+    }
+
+    function showFinalScreen(wonGame, payout){
+      updateTopInfo();
+      renderLadder();
+      document.getElementById("gameArea").innerHTML = `
+        <div class="final-screen">
+          <div class="question-number">${wonGame ? "Fantastisch!" : "Spiel beendet"}</div>
+          <h3>${wonGame ? "Du hast alle Fragen geschafft!" : "Dein Gewinn"}</h3>
+          <p>${wonGame ? "Du hast den Hauptgewinn geholt:" : "Du nimmst mit:"}</p>
+          <h3>${formatMoney(payout)}</h3>
+          <p>${wonGame ? "Starke Leistung." : "Du kannst direkt noch eine Runde spielen."}</p>
+          <button class="restart" onclick="restartGame()">Neu starten</button>
+        </div>
+      `;
+    }
+
+    function restartGame(){
+      questions = buildGameQuestions();
+      currentIndex = 0;
+      locked = false;
+      guaranteedMoney = 0;
+      wonMoney = 0;
+      jokerState.fifty = true;
+      jokerState.audience = true;
+      jokerState.change = true;
+
+      document.getElementById("gameArea").innerHTML = `
+        <div class="question-number" id="questionNumber">Frage 1 von 12</div>
+        <div class="question" id="questionText">Lädt...</div>
+        <div class="answers" id="answers"></div>
+        <div class="controls">
+          <div class="jokers">
+            <button class="joker" id="joker5050">50:50</button>
+            <button class="joker" id="jokerAudience">Publikum</button>
+            <button class="joker" id="jokerSwitch">Frage tauschen</button>
+          </div>
+          <button class="action-btn" id="walkAwayBtn">Mit Gewinn aussteigen</button>
+        </div>
+        <div class="message" id="message"></div>
+      `;
+
+      questionNumberEl = document.getElementById("questionNumber");
+      questionTextEl = document.getElementById("questionText");
+      answersEl = document.getElementById("answers");
+      messageEl = document.getElementById("message");
+      joker5050Btn = document.getElementById("joker5050");
+      jokerAudienceBtn = document.getElementById("jokerAudience");
+      jokerSwitchBtn = document.getElementById("jokerSwitch");
+      walkAwayBtn = document.getElementById("walkAwayBtn");
+
+      joker5050Btn.addEventListener("click", use5050);
+      jokerAudienceBtn.addEventListener("click", useAudience);
+      jokerSwitchBtn.addEventListener("click", useSwitchQuestion);
+      walkAwayBtn.addEventListener("click", walkAway);
+
+      renderQuestion();
+    }
+
+    function getCurrentQuestion(){
+      return questions[currentIndex];
+    }
+
+    function use5050(){
+      if(locked || !jokerState.fifty) return;
+      jokerState.fifty = false;
+      joker5050Btn.disabled = true;
+
+      const q = getCurrentQuestion();
+      const wrongButtons = [...document.querySelectorAll(".answer")]
+        .filter(btn => btn.dataset.answer !== q.correct && !btn.classList.contains("removed"));
+
+      shuffle(wrongButtons).slice(0,2).forEach(btn => btn.classList.add("removed"));
+      messageEl.textContent = "50:50 eingesetzt.";
+    }
+
+    function useAudience(){
+      if(locked || !jokerState.audience) return;
+      jokerState.audience = false;
+      jokerAudienceBtn.disabled = true;
+
+      const q = getCurrentQuestion();
+      const visibleButtons = [...document.querySelectorAll(".answer")].filter(btn => !btn.classList.contains("removed"));
+      const texts = visibleButtons.map(btn => {
+        let pct;
+        if(btn.dataset.answer === q.correct){
+          pct = Math.floor(Math.random() * 21) + 55;
+        } else {
+          pct = Math.floor(Math.random() * 21) + 8;
+        }
+        return `${btn.textContent.trim()} → ${pct}%`;
+      });
+
+      texts.sort((a, b) => parseInt(b.split("→")[1]) - parseInt(a.split("→")[1]));
+      messageEl.textContent = "Publikumstipp: " + texts.join(" | ");
+    }
+
+    function useSwitchQuestion(){
+      if(locked || !jokerState.change) return;
+      jokerState.change = false;
+      jokerSwitchBtn.disabled = true;
+
+      const currentQuestionText = questions[currentIndex].question;
+      const pool = rawQuestions.filter(([term]) => `Was heißt „${term}“ auf Deutsch?` !== currentQuestionText);
+      const picked = shuffle(pool)[0];
+      const term = picked[0];
+      const correct = picked[1];
+      const wrongPool = rawQuestions.map(q => q[1]).filter(a => a !== correct);
+      questions[currentIndex] = {
+        question: `Was heißt „${term}“ auf Deutsch?`,
+        correct,
+        options: shuffle([correct].concat(shuffle(wrongPool).slice(0,3)))
+      };
+
+      messageEl.textContent = "Frage wurde ausgetauscht.";
+      renderQuestion();
+    }
+
+    function walkAway(){
+      if(currentIndex === 0 || locked) return;
+      showFinalScreen(false, wonMoney);
+    }
+
+    joker5050Btn.addEventListener("click", use5050);
+    jokerAudienceBtn.addEventListener("click", useAudience);
+    jokerSwitchBtn.addEventListener("click", useSwitchQuestion);
+    walkAwayBtn.addEventListener("click", walkAway);
+
+    renderQuestion();
+  </script>
+</body>
+</html>
