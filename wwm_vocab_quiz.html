@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Wer wird Millionär – Vokabel Quiz</title>
+<style>
+body {
+    background: radial-gradient(circle, #001133, #000000);
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+.container {
+    margin-top: 50px;
+}
+.question {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+.answers button {
+    display: block;
+    margin: 10px auto;
+    padding: 15px;
+    width: 60%;
+    font-size: 18px;
+    background: #002266;
+    color: white;
+    border: 2px solid gold;
+    border-radius: 10px;
+    cursor: pointer;
+}
+.answers button:hover {
+    background: #003399;
+}
+.correct {
+    background: green !important;
+}
+.wrong {
+    background: red !important;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Wer wird Millionär – Vokabel Quiz</h1>
+    <div id="question" class="question"></div>
+    <div class="answers">
+        <button onclick="checkAnswer(this)"></button>
+        <button onclick="checkAnswer(this)"></button>
+        <button onclick="checkAnswer(this)"></button>
+        <button onclick="checkAnswer(this)"></button>
+    </div>
+</div>
+
+<script>
+const questions = [
+    {q: "Was heißt 'el tiempo libre'?", a: ["die Freizeit", "die Zeitung", "das Konzert", "die Musik"], correct: 0},
+    {q: "Was heißt 'viajar'?", a: ["reisen", "lesen", "hören", "sehen"], correct: 0},
+    {q: "Was heißt 'la música'?", a: ["die Musik", "die Bar", "die Zeitung", "die Ausstellung"], correct: 0},
+    {q: "Was heißt 'el concierto'?", a: ["das Konzert", "das Radio", "die Bar", "die Freizeit"], correct: 0},
+    {q: "Was heißt 'la radio'?", a: ["das Radio", "die Musik", "die Ausstellung", "die Zeitung"], correct: 0},
+    {q: "Was heißt 'el bar'?", a: ["die Bar", "das Konzert", "die Musik", "die Zeitung"], correct: 0},
+    {q: "Was heißt 'la revista'?", a: ["die Zeitschrift", "die Zeitung", "das Radio", "die Bar"], correct: 0},
+    {q: "Was heißt 'la exposición'?", a: ["die Ausstellung", "die Freizeit", "das Konzert", "die Musik"], correct: 0}
+];
+
+let current = 0;
+
+function loadQuestion() {
+    const q = questions[current];
+    document.getElementById("question").innerText = q.q;
+    const buttons = document.querySelectorAll(".answers button");
+    buttons.forEach((btn, i) => {
+        btn.innerText = q.a[i];
+        btn.className = "";
+    });
+}
+
+function checkAnswer(btn) {
+    const buttons = document.querySelectorAll(".answers button");
+    const q = questions[current];
+    buttons.forEach((b, i) => {
+        if (i === q.correct) b.classList.add("correct");
+    });
+    if (btn.innerText !== q.a[q.correct]) {
+        btn.classList.add("wrong");
+    }
+    setTimeout(() => {
+        current++;
+        if (current < questions.length) {
+            loadQuestion();
+        } else {
+            document.getElementById("question").innerText = "Spiel beendet!";
+        }
+    }, 1000);
+}
+
+loadQuestion();
+</script>
+
+</body>
+</html>
