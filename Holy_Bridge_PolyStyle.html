@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<title>Holy Bridge</title>
+<style>
+  :root{
+    --bg:#8f86ab; --panel:rgba(28,28,42,.52); --panel2:rgba(20,20,30,.66);
+    --white:rgba(255,255,255,.94); --muted:rgba(255,255,255,.72);
+    --green:#62ff76; --yellow:#ffe35c; --road:#3f2b1b; --wood:#d3af65; --steel:#d3d8df; --cable:#81caff;
+  }
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+  canvas{display:block;width:100vw;height:100vh;touch-action:none;}
+  .hud{position:fixed;inset:0;pointer-events:none}
+  .left,.right{position:absolute;top:14px;display:flex;gap:10px;pointer-events:auto;z-index:1000}
+  .left{left:14px}.right{right:14px}
+  .btn{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(26,26,40,.56);border:1px solid rgba(255,255,255,.12);color:var(--white);box-shadow:0 10px 24px rgba(0,0,0,.18);backdrop-filter:blur(6px);cursor:pointer;user-select:none}
+  .btn:active{transform:translateY(1px)}
+  #startBtn{background:rgba(52,129,90,.70);z-index:9999;touch-action:manipulation}
+  .center{position:absolute;left:50%;top:14px;transform:translateX(-50%);min-width:320px;text-align:center;background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 18px;box-shadow:0 14px 30px rgba(0,0,0,.16);backdrop-filter:blur(8px)}
+  .money{font-weight:1000;font-size:26px;line-height:26px;color:var(--green);text-shadow:0 2px 10px rgba(0,0,0,.35)}
+  .sub{margin-top:6px;font-size:13px;font-weight:900;color:var(--yellow);letter-spacing:.3px}
+  .titleBox{position:absolute;left:50%;top:94px;transform:translateX(-50%);padding:16px 30px;border-radius:6px;background:rgba(0,0,0,.16);border:1px solid rgba(255,255,255,.10);box-shadow:0 18px 40px rgba(0,0,0,.18);pointer-events:none;backdrop-filter:blur(4px)}
+  .title{color:rgba(255,255,255,.94);font-size:54px;font-weight:1000;letter-spacing:2px;white-space:nowrap;text-shadow:0 12px 24px rgba(0,0,0,.20)}
+  .matBar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:14px;background:var(--panel2);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px 16px;box-shadow:0 16px 34px rgba(0,0,0,.24);backdrop-filter:blur(10px);z-index:1000}
+  .mat{min-width:120px;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;color:var(--white);border:1px solid rgba(255,255,255,.10);cursor:pointer;user-select:none}
+  .mat.active{outline:3px solid rgba(255,205,77,.82)}
+  .chip{width:40px;height:28px;border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px rgba(0,0,0,.24)}
+  .label{font-size:16px;font-weight:900}
+  .help{position:fixed;left:18px;bottom:110px;max-width:min(560px, calc(100vw - 36px));padding:12px 14px;border-radius:14px;background:rgba(0,0,0,.34);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.88);font-size:13px;font-weight:800;line-height:1.35;box-shadow:0 10px 28px rgba(0,0,0,.20);backdrop-filter:blur(8px);pointer-events:none}
+  .toast{position:fixed;left:50%;top:164px;transform:translateX(-50%);padding:10px 14px;border-radius:12px;background:rgba(18,18,26,.84);border:1px solid rgba(255,255,255,.12);color:var(--white);font-weight:900;z-index:1200;display:none;box-shadow:0 10px 26px rgba(0,0,0,.26)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud">
+  <div class="left">
+    <div class="btn" id="startBtn" title="Start / Stop">
+      <svg id="startIcon" width="20" height="20" viewBox="0 0 18 18" fill="none">
+        <path d="M6 4.5v9l8-4.5-8-4.5z" fill="rgba(255,255,255,.96)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="center">
+    <div class="money" id="money">$0</div>
+    <div class="sub" id="sub">Level 1/8 • Car • Budget: $0</div>
+  </div>
+  <div class="right">
+    <div class="btn" id="undoBtn">↺</div>
+    <div class="btn" id="redoBtn">↻</div>
+    <div class="btn" id="resetBtn">🗑</div>
+  </div>
+  <div class="titleBox"><div class="title">HOLY BRIDGE</div></div>
+</div>
+
+<div class="matBar" id="matBar">
+  <div class="mat active" data-mat="ROAD"><div class="chip" style="background:rgba(63,43,27,.78)"><svg width="28" height="18" viewBox="0 0 28 18"><rect x="2" y="7" width="24" height="4" rx="2" fill="rgba(255,255,255,.10)"/><path d="M4 9h4M12 9h4M20 9h4" stroke="rgba(255,255,255,.72)" stroke-width="2" stroke-linecap="round"/></svg></div><div class="label">Road</div></div>
+  <div class="mat" data-mat="WOOD"><div class="chip" style="background:rgba(211,175,101,.82)"><svg width="28" height="18" viewBox="0 0 28 18"><rect x="3" y="4" width="22" height="10" rx="3" fill="rgba(0,0,0,.14)"/><path d="M6 6c2 2 2 4 0 6M10 6c2 2 2 4 0 6M14 6c2 2 2 4 0 6M18 6c2 2 2 4 0 6" stroke="rgba(255,255,255,.36)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="label">Wood</div></div>
+  <div class="mat" data-mat="STEEL"><div class="chip" style="background:rgba(211,216,223,.84)"><svg width="28" height="18" viewBox="0 0 28 18"><path d="M7 4h14v3H17v4h4v3H7v-3h4V7H7V4z" fill="rgba(0,0,0,.20)"/><path d="M8 5h12" stroke="rgba(255,255,255,.56)" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="label">Steel</div></div>
+  <div class="mat" data-mat="CABLE"><div class="chip" style="background:rgba(129,202,255,.75)"><svg width="28" height="18" viewBox="0 0 28 18"><path d="M4 13c4-8 16-8 20 0" stroke="rgba(0,0,0,.22)" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M4 13c4-8 16-8 20 0" stroke="rgba(255,255,255,.70)" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg></div><div class="label">Cable</div></div>
+</div>
+
+<div class="help">Build: Klick = Node setzen (32px Raster). Klick Node → Node = Verbindung. Ziehen = Node bewegen. Shift+Klick Verbindung = löschen. Delete = Node löschen. ▶ = Versuch starten/stoppen.</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const canvas=document.getElementById('c');
+  const ctx=canvas.getContext('2d',{alpha:false});
+
+  let DPR=1, WC=0, HC=0, W=0, H=0;
+  function resize(){
+    DPR=Math.max(1, Math.min(2, window.devicePixelRatio||1));
+    WC=window.innerWidth; HC=window.innerHeight;
+    W=Math.floor(WC*DPR); H=Math.floor(HC*DPR);
+    canvas.width=W; canvas.height=H;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const GRID=32, G=0.48, DAMP=0.995, ITER=10, SNAP_RADIUS=18;
+
+  const Materials={
+    ROAD:{name:'ROAD',color:'#3f2b1b',width:12,cost:9,t:0.30,c:0.26,tensionOnly:false},
+    WOOD:{name:'WOOD',color:'#d3af65',width:7,cost:6,t:0.22,c:0.18,tensionOnly:false},
+    STEEL:{name:'STEEL',color:'#d3d8df',width:7,cost:10,t:0.46,c:0.40,tensionOnly:false},
+    CABLE:{name:'CABLE',color:'#81caff',width:3.5,cost:7,t:0.28,c:0.10,tensionOnly:true}
+  };
+  const VEHICLES={
+    Car:{speed:1.45,load:0.58,yOff:30,bodyScale:1.00},
+    Pickup:{speed:1.30,load:0.70,yOff:31,bodyScale:1.05},
+    Van:{speed:1.15,load:0.85,yOff:32,bodyScale:1.10},
+    Bus:{speed:0.95,load:1.10,yOff:34,bodyScale:1.22},
+    Truck:{speed:0.88,load:1.35,yOff:36,bodyScale:1.30}
+  };
+  const LEVELS=[
+    {vehicle:'Car',budget:11200,canyon:520,leftY:0.62,rightY:0.62},
+    {vehicle:'Pickup',budget:11800,canyon:620,leftY:0.62,rightY:0.58},
+    {vehicle:'Van',budget:12400,canyon:700,leftY:0.63,rightY:0.56},
+    {vehicle:'Bus',budget:13600,canyon:760,leftY:0.62,rightY:0.62,boat:true,boatW:90,boatH:60},
+    {vehicle:'Truck',budget:14600,canyon:820,leftY:0.64,rightY:0.55},
+    {vehicle:'Car',budget:13000,canyon:680,leftY:0.70,rightY:0.52},
+    {vehicle:'Bus',budget:15000,canyon:860,leftY:0.66,rightY:0.66,boat:true,boatW:120,boatH:68},
+    {vehicle:'Truck',budget:17000,canyon:920,leftY:0.68,rightY:0.50}
+  ];
+
+  function snap(v){ return Math.round(v/GRID)*GRID; }
+  function levelParams(index){
+    const raw=LEVELS[index];
+    const canyon=clamp(raw.canyon,420,WC-220);
+    const leftX=snap((WC-canyon)/2), rightX=snap((WC+canyon)/2);
+    const leftY=snap(HC*raw.leftY), rightY=snap(HC*raw.rightY);
+    return {id:index+1,total:LEVELS.length,vehicle:raw.vehicle,budget:raw.budget,canyon,leftX,rightX,leftY,rightY,boat:!!raw.boat,boatW:raw.boatW||0,boatH:raw.boatH||0};
+  }
+
+  function Node(id,x,y,fixed,isAnchor){ return {id,x,y,px:x,py:y,invMass:fixed?0:1,r:9,fixed,isAnchor}; }
+  function Member(id,a,b,len,mat){ return {id,a,b,len,mat,broken:false,strain:0}; }
+
+  let state=null;
+  function newState(levelIndex=0){
+    const lvl=levelParams(levelIndex);
+    const s={levelIndex,phase:'build',material:'ROAD',nodes:[],members:[],nodeId:1,memId:1,selectedNode:null,dragging:null,spent:0,undo:[],redo:[],
+      layout:{leftX:lvl.leftX,rightX:lvl.rightX,leftY:lvl.leftY,rightY:lvl.rightY,voidY:Math.max(lvl.leftY,lvl.rightY)+170},
+      boat:lvl.boat ? {x:(lvl.leftX+lvl.rightX)/2,y:Math.max(lvl.leftY,lvl.rightY)+115,w:lvl.boatW,h:lvl.boatH,active:false,t:0} : null,
+      car:{x:lvl.leftX-2,y:lvl.leftY-VEHICLES[lvl.vehicle].yOff,progress:0,path:null,speed:VEHICLES[lvl.vehicle].speed,load:VEHICLES[lvl.vehicle].load,vehicle:lvl.vehicle}
+    };
+    const a=addNode(s,lvl.leftX,lvl.leftY,true,true);
+    const b=addNode(s,lvl.rightX,lvl.rightY,true,true);
+    s.anchorA=a.id; s.anchorB=b.id;
+    recalcBudget(s); pushUndo(s); return s;
+  }
+
+  function addNode(s,x,y,fixed=false,isAnchor=false){ const n=Node(s.nodeId++,x,y,fixed,isAnchor); s.nodes.push(n); return n; }
+  function getNode(s,id){ return s.nodes.find(n=>n.id===id); }
+  function addMember(s,aId,bId,mat){
+    if(aId===bId) return null;
+    const ex=s.members.find(m=>!m.broken && m.mat===mat && ((m.a===aId&&m.b===bId)||(m.a===bId&&m.b===aId)));
+    if(ex) return null;
+    const A=getNode(s,aId), B=getNode(s,bId); if(!A||!B) return null;
+    const m=Member(s.memId++,aId,bId,Math.hypot(B.x-A.x,B.y-A.y),mat);
+    s.members.push(m); recalcBudget(s); return m;
+  }
+  function removeMember(s,id){ const i=s.members.findIndex(m=>m.id===id); if(i>=0){ s.members.splice(i,1); recalcBudget(s); } }
+  function removeNode(s,id){
+    const n=s.nodes.find(nn=>nn.id===id); if(!n||n.fixed) return;
+    s.members=s.members.filter(m=>m.a!==id&&m.b!==id); s.nodes=s.nodes.filter(nn=>nn.id!==id);
+    if(s.selectedNode===id) s.selectedNode=null; recalcBudget(s);
+  }
+  function recalcBudget(s){ let spent=0; for(const m of s.members) spent += Materials[m.mat].cost*(m.len/GRID); s.spent=spent; }
+
+  function snapshot(s){ return JSON.stringify({levelIndex:s.levelIndex,phase:s.phase,material:s.material,nodes:s.nodes,members:s.members,nodeId:s.nodeId,memId:s.memId,selectedNode:s.selectedNode,spent:s.spent,layout:s.layout,anchorA:s.anchorA,anchorB:s.anchorB,car:s.car,boat:s.boat}); }
+  function restore(s,snap){ Object.assign(s, JSON.parse(snap)); recalcBudget(s); }
+  function pushUndo(s){ s.undo.push(snapshot(s)); if(s.undo.length>80) s.undo.shift(); s.redo.length=0; }
+  function doUndo(){ if(state.undo.length<=1) return; const cur=state.undo.pop(); state.redo.push(cur); restore(state,state.undo[state.undo.length-1]); updateHUD(); }
+  function doRedo(){ if(!state.redo.length) return; const snap=state.redo.pop(); state.undo.push(snap); restore(state,snap); updateHUD(); }
+
+  const moneyEl=document.getElementById('money'), subEl=document.getElementById('sub'), startBtn=document.getElementById('startBtn'), startIcon=document.getElementById('startIcon'), toastEl=document.getElementById('toast');
+  function toast(msg){ toastEl.textContent=msg; toastEl.style.display='block'; clearTimeout(toastEl._t); toastEl._t=setTimeout(()=>toastEl.style.display='none',1400); }
+  function updateHUD(){
+    const lvl=levelParams(state.levelIndex);
+    moneyEl.textContent='$'+Math.max(0,Math.round(lvl.budget-state.spent));
+    subEl.textContent=`Level ${lvl.id}/${lvl.total} • ${lvl.vehicle}${lvl.boat?' • Boat':''} • Budget: $${Math.round(lvl.budget)}`;
+    startIcon.innerHTML=state.phase==='sim' ? '<rect x="5" y="5" width="3.6" height="8" fill="rgba(255,255,255,.96)"/><rect x="9.4" y="5" width="3.6" height="8" fill="rgba(255,255,255,.96)"/>' : '<path d="M6 4.5v9l8-4.5-8-4.5z" fill="rgba(255,255,255,.96)"/>';
+    document.querySelectorAll('.mat').forEach(el=>el.classList.toggle('active',el.dataset.mat===state.material));
+  }
+
+  document.getElementById('matBar').addEventListener('pointerdown',e=>{
+    const el=e.target.closest('.mat'); if(!el) return;
+    e.preventDefault(); e.stopPropagation(); if(state.phase!=='build') return;
+    state.material=el.dataset.mat; updateHUD();
+  },{passive:false});
+  document.getElementById('undoBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation(); if(state.phase==='build') doUndo();},{passive:false,capture:true});
+  document.getElementById('redoBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation(); if(state.phase==='build') doRedo();},{passive:false,capture:true});
+  document.getElementById('resetBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation(); state=newState(state.levelIndex); updateHUD();},{passive:false,capture:true});
+
+  let gate=0;
+  const toggleStart=(e)=>{
+    const now=performance.now(); if(now-gate<220) return; gate=now;
+    try{e&&e.preventDefault&&e.preventDefault();}catch(_){}
+    try{e&&e.stopPropagation&&e.stopPropagation();}catch(_){}
+    if(state.phase==='build') startSim(); else stopSim();
+  };
+  startBtn.addEventListener('pointerdown',toggleStart,{passive:false,capture:true});
+  startBtn.addEventListener('touchstart',toggleStart,{passive:false,capture:true});
+  startBtn.addEventListener('touchend',toggleStart,{passive:false,capture:true});
+  startBtn.addEventListener('click',toggleStart,{capture:true});
+
+  function cssToWorld(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+  function nearestNode(s,x,y,rad){
+    let best=null,bestD=1e9;
+    for(const n of s.nodes){
+      const d=Math.hypot(n.x-x,n.y-y), allow=n.fixed?rad+10:rad;
+      if(d<allow&&d<bestD){ bestD=d; best=n; }
+    }
+    return best;
+  }
+  function nearestSnap(s,x,y){
+    const near=nearestNode(s,x,y,SNAP_RADIUS);
+    if(near) return {x:near.x,y:near.y,node:near};
+    return {x:snap(x),y:snap(y),node:null};
+  }
+  function findMemberAt(s,x,y){
+    let best=null,bestD=1e9;
+    for(const m of s.members){
+      if(m.broken) continue;
+      const A=getNode(s,m.a), B=getNode(s,m.b);
+      const vx=B.x-A.x, vy=B.y-A.y, wx=x-A.x, wy=y-A.y;
+      const c1=vx*wx+vy*wy, c2=vx*vx+vy*vy;
+      let t=c2>0?c1/c2:0; t=clamp(t,0,1);
+      const px=A.x+t*vx, py=A.y+t*vy, d=Math.hypot(x-px,y-py);
+      if(d<Materials[m.mat].width+6 && d<bestD){ bestD=d; best=m; }
+    }
+    return best;
+  }
+
+  let dragTimer=0;
+  function pushUndoDebounced(){ const now=performance.now(); if(now-dragTimer>120){ dragTimer=now; pushUndo(state); } }
+
+  canvas.addEventListener('pointerdown',e=>{
+    if(state.phase!=='build') return;
+    e.preventDefault();
+    const p=cssToWorld(e), ns=nearestSnap(state,p.x,p.y);
+    const x=clamp(ns.x,state.layout.leftX-40,state.layout.rightX+40);
+    const y=clamp(ns.y,120,state.layout.voidY-20);
+
+    if(e.shiftKey){
+      const m=findMemberAt(state,p.x,p.y);
+      if(m){ removeMember(state,m.id); pushUndo(state); updateHUD(); }
+      return;
+    }
+
+    const hit=ns.node || nearestNode(state,p.x,p.y,SNAP_RADIUS);
+    if(hit){
+      if(state.selectedNode && state.selectedNode!==hit.id){
+        addMember(state,state.selectedNode,hit.id,state.material);
+        state.selectedNode=hit.id; pushUndo(state); updateHUD(); return;
+      }
+      state.selectedNode=hit.id;
+      if(!hit.fixed) state.dragging=hit.id;
+      updateHUD(); return;
+    }
+
+    const n=addNode(state,x,y,false,false);
+    if(state.selectedNode) addMember(state,state.selectedNode,n.id,state.material);
+    state.selectedNode=n.id; pushUndo(state); updateHUD();
+  },{passive:false});
+
+  canvas.addEventListener('pointermove',e=>{
+    if(state.phase!=='build' || !state.dragging) return;
+    e.preventDefault();
+    const p=cssToWorld(e), ns=nearestSnap(state,p.x,p.y);
+    const x=clamp(ns.x,state.layout.leftX-40,state.layout.rightX+40);
+    const y=clamp(ns.y,120,state.layout.voidY-20);
+    const n=getNode(state,state.dragging); if(!n||n.fixed) return;
+    n.x=x; n.y=y; pushUndoDebounced(); updateHUD();
+  },{passive:false});
+  canvas.addEventListener('pointerup',()=>{state.dragging=null;},{passive:true});
+  canvas.addEventListener('pointercancel',()=>{state.dragging=null;},{passive:true});
+
+  window.addEventListener('keydown',e=>{
+    if((e.key==='Delete'||e.key==='Backspace')&&state.phase==='build'&&state.selectedNode){ removeNode(state,state.selectedNode); pushUndo(state); updateHUD(); }
+    if(e.key===' '){ e.preventDefault(); toggleStart(e); }
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); doUndo(); }
+    if((e.ctrlKey||e.metaKey)&&(e.key.toLowerCase()==='y'||(e.shiftKey&&e.key.toLowerCase()==='z'))){ e.preventDefault(); doRedo(); }
+  });
+
+  function physicsStep(s){
+    for(const n of s.nodes){
+      if(n.invMass===0) continue;
+      const vx=(n.x-n.px)*DAMP, vy=(n.y-n.py)*DAMP;
+      n.px=n.x; n.py=n.y;
+      n.x += vx; n.y += vy + G;
+    }
+    for(let it=0; it<ITER; it++){
+      for(const m of s.members){
+        if(m.broken) continue;
+        const A=getNode(s,m.a), B=getNode(s,m.b); if(!A||!B) continue;
+        const dx=B.x-A.x, dy=B.y-A.y; let d=Math.hypot(dx,dy); if(d<1e-4) d=1e-4;
+        if(!(Materials[m.mat].tensionOnly && d<m.len)){
+          const diff=(d-m.len)/d, imA=A.invMass, imB=B.invMass, sum=imA+imB||1;
+          if(imA>0){ A.x += dx*diff*(imA/sum); A.y += dy*diff*(imA/sum); }
+          if(imB>0){ B.x -= dx*diff*(imB/sum); B.y -= dy*diff*(imB/sum); }
+        }
+        m.strain=(d-m.len)/m.len;
+        const mat=Materials[m.mat], limit=(m.strain>=0)?mat.t:mat.c;
+        if(!(mat.tensionOnly && m.strain<0) && Math.abs(m.strain)>limit) m.broken=true;
+      }
+      const floorY=s.layout.voidY+260;
+      for(const n of s.nodes){ if(n.invMass!==0 && n.y>floorY) n.y=floorY; }
+    }
+  }
+
+  function buildRoadPath(s){
+    const start=s.anchorA, goal=s.anchorB;
+    const adj=new Map();
+    for(const n of s.nodes) adj.set(n.id,[]);
+    for(const m of s.members){
+      if(m.broken || m.mat!=='ROAD') continue;
+      adj.get(m.a).push(m.b); adj.get(m.b).push(m.a);
+    }
+    const q=[start], prev=new Map(); prev.set(start,0);
+    while(q.length){
+      const cur=q.shift();
+      if(cur===goal) break;
+      for(const nx of adj.get(cur)){ if(prev.has(nx)) continue; prev.set(nx,cur); q.push(nx); }
+    }
+    if(!prev.has(goal)) return null;
+    const ids=[]; let cur=goal;
+    while(cur!==0){ ids.push(cur); cur=prev.get(cur); }
+    ids.reverse();
+    const pts=ids.map(id=>getNode(s,id)).filter(Boolean).map(n=>({id:n.id,x:n.x,y:n.y}));
+    const segs=[]; let total=0;
+    for(let i=0;i<pts.length-1;i++){ const a=pts[i], b=pts[i+1], len=Math.hypot(b.x-a.x,b.y-a.y); segs.push({a,b,len,acc:total}); total+=len; }
+    return {pts,segs,total};
+  }
+
+  function boatClearanceOk(s){
+    if(!s.boat) return true;
+    const x1=s.boat.x-s.boat.w/2, x2=s.boat.x+s.boat.w/2, top=s.boat.y-s.boat.h;
+    for(const m of s.members){
+      if(m.broken || m.mat!=='ROAD') continue;
+      const A=getNode(s,m.a), B=getNode(s,m.b); if(!A||!B) continue;
+      const minX=Math.min(A.x,B.x), maxX=Math.max(A.x,B.x);
+      if(maxX<x1||minX>x2) continue;
+      for(let i=0;i<=8;i++){
+        const t=i/8, x=lerp(A.x,B.x,t), y=lerp(A.y,B.y,t);
+        if(x>=x1 && x<=x2 && y>top) return false;
+      }
+    }
+    return true;
+  }
+
+  function carStep(s){
+    if(!s.car.path) s.car.path=buildRoadPath(s);
+    if(!s.car.path){ s.car.x=s.layout.leftX-2; s.car.y=s.layout.leftY-VEHICLES[s.car.vehicle].yOff; return; }
+    s.car.progress += s.car.speed;
+    if(s.car.progress >= s.car.path.total){ s.car.progress=s.car.path.total; levelComplete(); return; }
+    let seg=s.car.path.segs[0];
+    for(let i=s.car.path.segs.length-1;i>=0;i--){ if(s.car.progress>=s.car.path.segs[i].acc){ seg=s.car.path.segs[i]; break; } }
+    const t=seg.len>0 ? ((s.car.progress-seg.acc)/seg.len) : 0;
+    const yOff=VEHICLES[s.car.vehicle].yOff;
+    s.car.x=lerp(seg.a.x,seg.b.x,t); s.car.y=lerp(seg.a.y,seg.b.y,t)-yOff;
+    const A=getNode(s,seg.a.id), B=getNode(s,seg.b.id);
+    if(A&&A.invMass>0) A.y += s.car.load;
+    if(B&&B.invMass>0) B.y += s.car.load;
+  }
+
+  function levelComplete(){
+    stopSim();
+    if(state.levelIndex < LEVELS.length-1){ toast('Level geschafft'); state=newState(state.levelIndex+1); updateHUD(); }
+    else { toast('Alle Level geschafft'); }
+  }
+
+  function startSim(){
+    const p=buildRoadPath(state);
+    if(!p){ toast('Baue zuerst eine durchgehende Road.'); return; }
+    if(!boatClearanceOk(state)){ toast('Boat braucht mehr Höhe.'); return; }
+    state.phase='sim'; state.car.path=null; state.car.progress=0;
+    state.car.x=state.layout.leftX-2; state.car.y=state.layout.leftY-VEHICLES[state.car.vehicle].yOff;
+    if(state.boat) state.boat.active=true; updateHUD();
+  }
+  function stopSim(){ state.phase='build'; for(const n of state.nodes){ n.px=n.x; n.py=n.y; } if(state.boat) state.boat.active=false; updateHUD(); }
+
+  function mix(a,b,t){
+    function rgb(hex){ const v=parseInt(hex.slice(1),16); return [(v>>16)&255,(v>>8)&255,v&255]; }
+    const A=rgb(a), B=rgb(b);
+    return `rgb(${Math.round(lerp(A[0],B[0],t))},${Math.round(lerp(A[1],B[1],t))},${Math.round(lerp(A[2],B[2],t))})`;
+  }
+  function stressColor(strain){ const a=Math.abs(strain); if(a<0.06) return '#68ff7a'; if(a<0.12) return '#ffe35c'; if(a<0.18) return '#ffb24c'; return '#ff5454'; }
+  function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+  function drawBackground(){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.fillStyle='#8f86ab'; ctx.fillRect(0,0,W,H);
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'rgba(255,255,255,0.12)'); g.addColorStop(1,'rgba(0,0,0,0.22)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    const vg=ctx.createRadialGradient(W*0.5,H*0.35,Math.min(W,H)*0.2,W*0.5,H*0.55,Math.min(W,H)*0.92); vg.addColorStop(0,'rgba(0,0,0,0.00)'); vg.addColorStop(1,'rgba(0,0,0,0.30)'); ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+    ctx.save(); ctx.globalAlpha=0.18; ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.lineWidth=1;
+    const step=GRID*DPR; for(let x=0;x<=W;x+=step){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); } for(let y=0;y<=H;y+=step){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  function drawCliffs(){
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    const lvl=levelParams(state.levelIndex);
+    function cliff(side){
+      ctx.save();
+      ctx.fillStyle='rgba(30,30,46,0.82)'; ctx.beginPath();
+      if(side==='left'){ ctx.moveTo(0,0); ctx.lineTo(lvl.leftX-40,0); ctx.lineTo(lvl.leftX-40,HC); ctx.lineTo(0,HC); }
+      else { ctx.moveTo(lvl.rightX+40,0); ctx.lineTo(WC,0); ctx.lineTo(WC,HC); ctx.lineTo(lvl.rightX+40,HC); }
+      ctx.closePath(); ctx.fill();
+
+      ctx.globalAlpha=0.95; ctx.fillStyle='rgba(18,18,28,0.30)'; ctx.beginPath();
+      if(side==='left'){ ctx.moveTo(0,0); ctx.lineTo(lvl.leftX-40,0); ctx.lineTo(lvl.leftX-40,lvl.leftY); ctx.lineTo(lvl.leftX-160, lvl.leftY*0.55); }
+      else { ctx.moveTo(lvl.rightX+40,0); ctx.lineTo(WC,0); ctx.lineTo(lvl.rightX+160, lvl.rightY*0.55); ctx.lineTo(lvl.rightX+40,lvl.rightY); }
+      ctx.closePath(); ctx.fill();
+
+      const px=side==='left' ? (lvl.leftX-140) : (lvl.rightX-100);
+      const py=side==='left' ? lvl.leftY : lvl.rightY;
+      ctx.globalAlpha=0.95; ctx.fillStyle='rgba(20,20,32,0.62)'; roundRect(px,py,240,64,10); ctx.fill();
+      ctx.globalAlpha=0.85; ctx.fillStyle='rgba(10,10,18,0.55)'; roundRect(px+8,py+10,224,18,9); ctx.fill();
+      ctx.globalAlpha=0.70; ctx.fillStyle='rgba(0,0,0,0.22)'; roundRect(px,py+46,240,42,10); ctx.fill();
+      ctx.restore();
+    }
+    cliff('left'); cliff('right');
+
+    function tree(cx,cy,s){
+      ctx.save(); ctx.translate(cx,cy); ctx.globalAlpha=0.55; ctx.fillStyle='rgba(255,255,255,0.22)';
+      roundRect(-6*s,30*s,12*s,40*s,6*s); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(0,-10*s); ctx.lineTo(-38*s,34*s); ctx.lineTo(38*s,34*s); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(0,12*s); ctx.lineTo(-34*s,54*s); ctx.lineTo(34*s,54*s); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(0,34*s); ctx.lineTo(-28*s,72*s); ctx.lineTo(28*s,72*s); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    tree(lvl.leftX-210, lvl.leftY-138, 1.2); tree(lvl.rightX+210, lvl.rightY-128, 1.05);
+
+    function drawA(x,y){ ctx.save(); ctx.globalAlpha=0.55; ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.font='900 42px system-ui'; ctx.textAlign='center'; ctx.fillText('A',x,y); ctx.restore(); }
+    drawA(lvl.leftX-250, lvl.leftY-58); drawA(lvl.rightX+250, lvl.rightY-58);
+  }
+
+  function drawBoat(){
+    if(!state.boat) return;
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    const b=state.boat, bob=state.phase==='sim' ? Math.sin(b.t)*2 : 0, x=b.x, y=b.y+bob;
+    ctx.save(); ctx.globalAlpha=0.18; ctx.fillStyle='#000'; roundRect(x-b.w*0.45,y+8,b.w*0.9,12,8); ctx.fill(); ctx.globalAlpha=1;
+    ctx.fillStyle='#4aa3ff'; ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x-b.w*0.45,y); ctx.lineTo(x+b.w*0.45,y); ctx.lineTo(x+b.w*0.30,y+b.h*0.32); ctx.lineTo(x-b.w*0.30,y+b.h*0.32); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#9ad5ff'; roundRect(x-b.w*0.16,y-b.h*0.22,b.w*0.22,b.h*0.24,6); ctx.fill(); ctx.stroke();
+    ctx.globalAlpha=0.30; ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x-b.w*0.55,y+b.h*0.42); ctx.lineTo(x+b.w*0.55,y+b.h*0.42); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawMembers(){
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    for(const m of state.members){
+      if(m.broken) continue;
+      const A=getNode(state,m.a), B=getNode(state,m.b); if(!A||!B) continue;
+      const mat=Materials[m.mat], t=clamp(Math.abs(m.strain)/Math.max(0.22,mat.t),0,1), base=mix(mat.color,stressColor(m.strain),t*0.85);
+      ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+      if(mat.name==='CABLE'){
+        ctx.globalAlpha=0.50; ctx.strokeStyle='rgba(120,190,255,0.55)'; ctx.lineWidth=mat.width+4; ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+        ctx.globalAlpha=0.95; ctx.strokeStyle=base; ctx.lineWidth=mat.width; ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+      }else{
+        ctx.globalAlpha=0.22; ctx.strokeStyle='rgba(0,0,0,0.40)'; ctx.lineWidth=mat.width+2; ctx.beginPath(); ctx.moveTo(A.x+1.2,A.y+1.6); ctx.lineTo(B.x+1.2,B.y+1.6); ctx.stroke();
+        ctx.globalAlpha=0.98; ctx.strokeStyle=base; ctx.lineWidth=mat.width; ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke();
+        ctx.globalAlpha=0.18; ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=Math.max(2,mat.width*0.35); ctx.beginPath(); ctx.moveTo(A.x-0.8,A.y-0.8); ctx.lineTo(B.x-0.8,B.y-0.8); ctx.stroke();
+        if(mat.name==='ROAD'){ ctx.globalAlpha=0.35; ctx.strokeStyle='rgba(255,255,255,0.60)'; ctx.lineWidth=2; ctx.setLineDash([10,10]); ctx.beginPath(); ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y); ctx.stroke(); ctx.setLineDash([]); }
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawNodes(){
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    for(const n of state.nodes){
+      if(n.fixed){
+        ctx.save(); ctx.fillStyle='#c83a3a'; ctx.strokeStyle='rgba(0,0,0,.40)'; ctx.lineWidth=2; const s=20;
+        ctx.fillRect(n.x-s/2,n.y-s/2,s,s); ctx.globalAlpha=0.25; ctx.fillStyle='rgba(255,255,255,0.70)'; ctx.fillRect(n.x-s/2+2,n.y-s/2+2,s-4,4); ctx.globalAlpha=1; ctx.strokeRect(n.x-s/2,n.y-s/2,s,s); ctx.restore();
+      }else{
+        ctx.save(); ctx.fillStyle='#ffe85c'; ctx.strokeStyle='rgba(0,0,0,.38)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.globalAlpha=0.35; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(n.x-2.5,n.y-3.2,n.r*0.45,0,Math.PI*2); ctx.fill(); ctx.restore();
+      }
+    }
+  }
+
+  function drawCar(){
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    const x=state.car.x, y=state.car.y, scale=VEHICLES[state.car.vehicle].bodyScale;
+    ctx.save(); ctx.translate(x-40*scale,y-36*scale); ctx.scale(scale,scale);
+    function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+    ctx.globalAlpha=0.18; ctx.fillStyle='#000'; rr(6,48,104,10,8); ctx.fill(); ctx.globalAlpha=1;
+    function wheel(cx){ ctx.save(); ctx.translate(cx,46); ctx.fillStyle='rgba(245,248,255,0.98)'; ctx.strokeStyle='rgba(0,0,0,0.38)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,13,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle='rgba(0,0,0,0.12)'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=0.22; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(-4,-4,7,0,Math.PI*2); ctx.fill(); ctx.restore(); ctx.globalAlpha=1; }
+    wheel(30); wheel(90);
+    const g=ctx.createLinearGradient(0,18,0,52); g.addColorStop(0,'#9ad5ff'); g.addColorStop(0.55,'#6fb6ff'); g.addColorStop(1,'#4aa3ff');
+    ctx.fillStyle=g; ctx.strokeStyle='rgba(0,0,0,0.38)'; ctx.lineWidth=3; rr(10,22,102,26,14); ctx.fill(); ctx.stroke();
+    ctx.globalAlpha=0.55; ctx.fillStyle='rgba(0,0,0,0.18)'; rr(12,40,98,10,10); ctx.fill(); ctx.globalAlpha=1;
+    ctx.fillStyle='#9ad5ff'; rr(30,8,60,20,12); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='rgba(20,30,55,0.26)'; rr(38,12,16,12,6); ctx.fill(); rr(56,12,16,12,6); ctx.fill(); rr(74,12,12,12,6); ctx.fill();
+    ctx.globalAlpha=0.28; ctx.fillStyle='rgba(0,0,0,0.26)'; ctx.beginPath(); ctx.arc(30,46,16,Math.PI,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(90,46,16,Math.PI,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+    ctx.fillStyle='rgba(255,255,255,0.75)'; ctx.beginPath(); ctx.arc(106,34,4,0,Math.PI*2); ctx.fill(); ctx.fillStyle='rgba(255,90,90,0.65)'; ctx.beginPath(); ctx.arc(16,34,3.5,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=0.22; ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(22,28); ctx.quadraticCurveTo(62,18,100,30); ctx.stroke();
+    ctx.restore();
+  }
+
+  function render(){
+    drawBackground(); drawCliffs(); drawBoat(); drawMembers(); drawNodes(); drawCar();
+    ctx.setTransform(1,0,0,1,0,0); const vy=Math.floor(state.layout.voidY*DPR); ctx.save(); ctx.globalAlpha=0.14; ctx.fillStyle='#000'; ctx.fillRect(0,vy,W,H-vy); ctx.restore();
+  }
+
+  function tick(){
+    if(state.phase==='sim'){
+      for(let i=0;i<2;i++){ physicsStep(state); carStep(state); }
+      if(state.boat && state.boat.active) state.boat.t += 0.03;
+    }
+    render(); requestAnimationFrame(tick);
+  }
+
+  state=newState(0); updateHUD(); tick();
+})();
+</script>
+</body>
+</html>
