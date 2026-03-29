@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>McBurger Factory Tycoon</title>
+  <style>
+    :root{
+      --bg:#8fd3ff;
+      --grass1:#8fd36b;
+      --grass2:#78c257;
+      --road:#5d6269;
+      --roadLine:#e8e2aa;
+      --panel:#10151dd9;
+      --panel2:#171d26;
+      --text:#f4f7fb;
+      --muted:#b4c0d0;
+      --accent:#ffd54a;
+      --good:#6be07a;
+      --warn:#ffb347;
+      --danger:#ff7272;
+      --red:#d63d2f;
+      --redDark:#a62d22;
+      --yellow:#f3c83f;
+      --brown:#7b4d2a;
+      --brown2:#9c6238;
+      --gray:#cfd6dd;
+      --steel:#9fb1c1;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;
+      height:100%;
+      overflow:hidden;
+      background:linear-gradient(#9fe0ff,#dff6ff);
+      font-family:Inter,Segoe UI,Arial,sans-serif;
+      color:var(--text);
+    }
+    canvas{display:block;width:100vw;height:100vh}
+    .hud{
+      position:fixed;
+      inset:14px auto auto 14px;
+      width:360px;
+      background:var(--panel);
+      border:1px solid #ffffff20;
+      border-radius:18px;
+      box-shadow:0 18px 45px #00000045;
+      padding:14px 14px 10px;
+      backdrop-filter: blur(10px);
+    }
+    .title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .title h1{
+      font-size:20px;
+      margin:0;
+      letter-spacing:.2px;
+    }
+    .subtitle{
+      color:var(--muted);
+      font-size:12px;
+      margin-top:3px;
+    }
+    .money{
+      font-weight:800;
+      color:#1f2;
+      background:#062b12;
+      border:1px solid #1aff7a44;
+      padding:8px 12px;
+      border-radius:999px;
+      white-space:nowrap;
+    }
+    .stats{
+      display:grid;
+      grid-template-columns: repeat(3,1fr);
+      gap:10px;
+      margin:10px 0 12px;
+    }
+    .card{
+      background:linear-gradient(180deg,#ffffff10,#ffffff06);
+      border:1px solid #ffffff14;
+      border-radius:14px;
+      padding:10px;
+    }
+    .label{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:6px;
+      text-transform:uppercase;
+      letter-spacing:.8px;
+    }
+    .value{
+      font-size:20px;
+      font-weight:800;
+    }
+    .controls{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    button{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius:14px;
+      padding:12px 12px;
+      font-weight:800;
+      color:#15191f;
+      background:linear-gradient(180deg,#ffe37c,#f7c93f);
+      box-shadow:inset 0 -2px 0 #00000020, 0 10px 25px #00000022;
+      transition:.15s transform,.15s filter,.15s opacity;
+    }
+    button:hover{transform:translateY(-1px);filter:brightness(1.03)}
+    button:active{transform:translateY(1px)}
+    button.alt{
+      color:var(--text);
+      background:linear-gradient(180deg,#283040,#1b212d);
+      border:1px solid #ffffff14;
+      box-shadow:none;
+    }
+    button:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+      transform:none;
+      filter:none;
+    }
+    .log{
+      position:fixed;
+      right:14px;
+      top:14px;
+      width:320px;
+      background:var(--panel);
+      border:1px solid #ffffff20;
+      border-radius:18px;
+      padding:14px;
+      box-shadow:0 18px 45px #00000045;
+      backdrop-filter: blur(10px);
+    }
+    .log h2{
+      margin:0 0 10px;
+      font-size:16px;
+    }
+    .log ul{
+      margin:0;
+      padding-left:18px;
+      max-height:240px;
+      overflow:auto;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+    .footerHint{
+      position:fixed;
+      left:14px;
+      bottom:14px;
+      background:#0f141bd9;
+      border:1px solid #ffffff20;
+      color:var(--muted);
+      border-radius:14px;
+      padding:10px 12px;
+      font-size:12px;
+      backdrop-filter: blur(10px);
+    }
+    .legend{
+      position:fixed;
+      right:14px;
+      bottom:14px;
+      background:#0f141bd9;
+      border:1px solid #ffffff20;
+      color:var(--muted);
+      border-radius:14px;
+      padding:10px 12px;
+      font-size:12px;
+      backdrop-filter: blur(10px);
+      width:320px;
+    }
+    .legend b{color:var(--text)}
+    .brand{
+      font-weight:900;
+      color:#ffd54a;
+      text-shadow:0 2px 0 #00000025;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div class="hud">
+    <div class="title">
+      <div>
+        <h1><span class="brand">McBurger</span> Factory Tycoon</h1>
+        <div class="subtitle">Vogelperspektive • Fabrik produziert Burger • Restaurant verkauft sie automatisch</div>
+      </div>
+      <div class="money" id="money">$0</div>
+    </div>
+
+    <div class="stats">
+      <div class="card">
+        <div class="label">Burger Lager</div>
+        <div class="value" id="burgers">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Kunden</div>
+        <div class="value" id="customers">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Stufe</div>
+        <div class="value" id="level">1</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="btnMachine">Maschine kaufen<br><small id="machineCost">$250</small></button>
+      <button id="btnCourier">Lieferwagen kaufen<br><small id="courierCost">$400</small></button>
+      <button id="btnDesk">Kasse upgraden<br><small id="deskCost">$300</small></button>
+      <button class="alt" id="btnRestart">Neu starten</button>
+    </div>
+  </div>
+
+  <div class="log">
+    <h2>Was passiert gerade?</h2>
+    <ul id="events"></ul>
+  </div>
+
+  <div class="footerHint">
+    <b>Steuerung:</b> Maus bewegen zum Schauen • Mausrad zum Zoomen • Tycoon läuft automatisch
+  </div>
+
+  <div class="legend">
+    <b>Ziel:</b> Die Fabrik stellt Burger her. Lieferwagen bringen sie ins McBurger-Restaurant.
+    Dort kommen Kunden, kaufen Burger und bringen Geld. Mit Upgrades baust du die Fabrik aus.
+  </div>
+
+  <script>
+  (() => {
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const ui = {
+      money: document.getElementById("money"),
+      burgers: document.getElementById("burgers"),
+      customers: document.getElementById("customers"),
+      level: document.getElementById("level"),
+      machineCost: document.getElementById("machineCost"),
+      courierCost: document.getElementById("courierCost"),
+      deskCost: document.getElementById("deskCost"),
+      events: document.getElementById("events"),
+      btnMachine: document.getElementById("btnMachine"),
+      btnCourier: document.getElementById("btnCourier"),
+      btnDesk: document.getElementById("btnDesk"),
+      btnRestart: document.getElementById("btnRestart"),
+    };
+
+    const state = {
+      money: 500,
+      factoryBurgers: 0,
+      restaurantBurgers: 8,
+      totalCustomers: 0,
+      machines: 1,
+      couriers: 1,
+      cashiers: 1,
+      productionCooldown: 0,
+      customerTimer: 0,
+      time: 0,
+      camX: 0,
+      camY: 0,
+      targetCamX: 0,
+      targetCamY: 0,
+      zoom: 1,
+      targetZoom: 1,
+      roadTrucks: [],
+      customers: [],
+      particles: [],
+      trucks: [],
+      events: [],
+      level: 1
+    };
+
+    const world = {
+      w: 1800,
+      h: 1200,
+      factory: {x:220,y:320,w:460,h:330},
+      storage: {x:710,y:360,w:180,h:180},
+      roadY: 825,
+      restaurant: {x:1090,y:240,w:430,h:360},
+      parking: {x:1030,y:660,w:540,h:150}
+    };
+
+    function resetGame(){
+      state.money = 500;
+      state.factoryBurgers = 0;
+      state.restaurantBurgers = 8;
+      state.totalCustomers = 0;
+      state.machines = 1;
+      state.couriers = 1;
+      state.cashiers = 1;
+      state.productionCooldown = 0;
+      state.customerTimer = 0;
+      state.time = 0;
+      state.roadTrucks = [];
+      state.customers = [];
+      state.particles = [];
+      state.trucks = [];
+      state.events = [];
+      state.level = 1;
+      addEvent("Neues Spiel gestartet.");
+      spawnInitialCouriers();
+      updateUI();
+    }
+
+    function moneyFmt(v){ return "$" + Math.floor(v).toLocaleString("de-DE"); }
+
+    function addEvent(text){
+      state.events.unshift(text);
+      state.events = state.events.slice(0, 9);
+      renderEvents();
+    }
+    function renderEvents(){
+      ui.events.innerHTML = state.events.map(t => `<li>${t}</li>`).join("");
+    }
+
+    function resize(){
+      canvas.width = innerWidth * devicePixelRatio;
+      canvas.height = innerHeight * devicePixelRatio;
+      ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    }
+    addEvent("Willkommen bei McBurger Factory Tycoon!");
+    addEvent("Fabrik produziert Burger, Restaurant verkauft automatisch.");
+
+    function spawnInitialCouriers(){
+      state.trucks = [];
+      for(let i=0;i<state.couriers;i++){
+        state.trucks.push(makeTruck(i));
+      }
+    }
+
+    function makeTruck(i){
+      return {
+        t: i / Math.max(1,state.couriers),
+        phase: "toRestaurant",
+        cargo: 0,
+        speed: 0.035 + Math.random()*0.01
+      };
+    }
+
+    function updateUI(){
+      ui.money.textContent = moneyFmt(state.money);
+      ui.burgers.textContent = state.restaurantBurgers + state.factoryBurgers;
+      ui.customers.textContent = state.totalCustomers;
+      ui.level.textContent = state.level;
+      const machineCost = getMachineCost();
+      const courierCost = getCourierCost();
+      const deskCost = getDeskCost();
+      ui.machineCost.textContent = moneyFmt(machineCost);
+      ui.courierCost.textContent = moneyFmt(courierCost);
+      ui.deskCost.textContent = moneyFmt(deskCost);
+      ui.btnMachine.disabled = state.money < machineCost;
+      ui.btnCourier.disabled = state.money < courierCost;
+      ui.btnDesk.disabled = state.money < deskCost;
+    }
+
+    function getMachineCost(){ return Math.floor(250 * Math.pow(1.65, state.machines - 1)); }
+    function getCourierCost(){ return Math.floor(400 * Math.pow(1.75, state.couriers - 1)); }
+    function getDeskCost(){ return Math.floor(300 * Math.pow(1.8, state.cashiers - 1)); }
+
+    ui.btnMachine.onclick = () => {
+      const c = getMachineCost();
+      if(state.money < c) return;
+      state.money -= c;
+      state.machines++;
+      state.level = Math.max(state.level, 1 + Math.floor((state.machines + state.couriers + state.cashiers - 3)/2));
+      addEvent("Neue Burger-Maschine installiert.");
+      burst(world.factory.x + 120 + state.machines * 30, world.factory.y + 120, 14, "#ffe37c");
+      updateUI();
+    };
+    ui.btnCourier.onclick = () => {
+      const c = getCourierCost();
+      if(state.money < c) return;
+      state.money -= c;
+      state.couriers++;
+      state.trucks.push(makeTruck(state.couriers - 1));
+      state.level = Math.max(state.level, 1 + Math.floor((state.machines + state.couriers + state.cashiers - 3)/2));
+      addEvent("Neuer Lieferwagen gekauft.");
+      burst(world.parking.x + 70 + state.couriers * 26, world.parking.y + 58, 16, "#bfe8ff");
+      updateUI();
+    };
+    ui.btnDesk.onclick = () => {
+      const c = getDeskCost();
+      if(state.money < c) return;
+      state.money -= c;
+      state.cashiers++;
+      state.level = Math.max(state.level, 1 + Math.floor((state.machines + state.couriers + state.cashiers - 3)/2));
+      addEvent("Kasse verbessert. Kunden werden schneller bedient.");
+      burst(world.restaurant.x + 120, world.restaurant.y + 260, 12, "#9dffaf");
+      updateUI();
+    };
+    ui.btnRestart.onclick = resetGame;
+
+    let mouseX = 0, mouseY = 0;
+    addEvent("Tipp: Kaufe mehr Maschinen und Lieferwagen für schnelleren Gewinn.");
+    addEvent("Vogelperspektive aktiv.");
+    window.addEventListener("mousemove", e => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      const px = (mouseX / innerWidth - 0.5) * 220;
+      const py = (mouseY / innerHeight - 0.5) * 120;
+      state.targetCamX = px;
+      state.targetCamY = py;
+    });
+    window.addEventListener("wheel", e => {
+      e.preventDefault();
+      state.targetZoom = Math.max(0.75, Math.min(1.35, state.targetZoom + (e.deltaY > 0 ? -0.06 : 0.06)));
+    }, {passive:false});
+
+    function burst(x,y,count,color){
+      for(let i=0;i<count;i++){
+        state.particles.push({
+          x,y,
+          vx:(Math.random()-0.5)*2.8,
+          vy:(Math.random()-0.5)*2.8,
+          life:40+Math.random()*20,
+          color
+        });
+      }
+    }
+
+    function lerp(a,b,t){ return a + (b-a)*t; }
+    function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+    function update(dt){
+      state.time += dt;
+      state.camX = lerp(state.camX, state.targetCamX, 0.05);
+      state.camY = lerp(state.camY, state.targetCamY, 0.05);
+      state.zoom = lerp(state.zoom, state.targetZoom, 0.08);
+
+      // production
+      state.productionCooldown -= dt;
+      const productionRate = 1 / Math.max(0.18, 1.2 - state.machines * 0.12);
+      while(state.productionCooldown <= 0){
+        state.factoryBurgers += 1;
+        state.productionCooldown += productionRate;
+        if(Math.random() < 0.55) burst(world.factory.x + 180 + Math.random()*180, world.factory.y + 150 + Math.random()*90, 4, "#ffd877");
+      }
+
+      // trucks move
+      for(const truck of state.trucks){
+        truck.t += truck.speed * dt * (0.85 + state.couriers*0.1);
+        if(truck.phase === "toRestaurant" && truck.t >= 1){
+          truck.t = 1;
+          const load = Math.min(6 + state.couriers, state.factoryBurgers);
+          truck.cargo = load;
+          state.factoryBurgers -= load;
+          state.restaurantBurgers += load;
+          truck.phase = "toFactory";
+          burst(world.restaurant.x + 70, world.restaurant.y + 305, 10, "#fff1a0");
+          if(load > 0) addEvent(load + " Burger geliefert.");
+        } else if(truck.phase === "toFactory" && truck.t <= 0){
+          truck.t = 0;
+          truck.cargo = 0;
+          truck.phase = "toRestaurant";
+        }
+        if(truck.phase === "toFactory"){
+          truck.t -= truck.speed * dt * (0.85 + state.couriers*0.1) * 2;
+        }
+      }
+
+      // spawn customers
+      state.customerTimer -= dt;
+      const customerRate = Math.max(0.35, 1.8 - state.cashiers * 0.18);
+      if(state.customerTimer <= 0){
+        state.customerTimer = customerRate * (0.7 + Math.random()*0.8);
+        spawnCustomer();
+      }
+
+      // update customers
+      for(const c of state.customers){
+        c.x = lerp(c.x, c.tx, 0.03 * dt * 60);
+        c.y = lerp(c.y, c.ty, 0.03 * dt * 60);
+        c.wait -= dt;
+        if(c.state === "walkingIn" && Math.hypot(c.x-c.tx,c.y-c.ty) < 10){
+          c.state = "buying";
+          c.wait = 0.45 + Math.random()*0.55;
+        } else if(c.state === "buying" && c.wait <= 0){
+          if(state.restaurantBurgers > 0){
+            const price = 18 + state.cashiers * 2 + Math.floor(Math.random()*5);
+            state.restaurantBurgers--;
+            state.money += price;
+            state.totalCustomers++;
+            burst(c.x, c.y - 12, 7, "#91ff9d");
+            addFloatingText("+" + price, c.x, c.y - 8, "#99ff88");
+            c.tx = world.restaurant.x + 350 + Math.random()*110;
+            c.ty = world.restaurant.y + 360 + Math.random()*40;
+            c.state = "leaving";
+            updateUI();
+          } else {
+            c.wait = 0.4;
+          }
+        } else if(c.state === "leaving" && Math.hypot(c.x-c.tx,c.y-c.ty) < 12){
+          c.dead = true;
+        }
+      }
+      state.customers = state.customers.filter(c => !c.dead).slice(-36);
+
+      // particles
+      for(const p of state.particles){
+        p.x += p.vx * dt * 60;
+        p.y += p.vy * dt * 60;
+        p.vy += 0.015 * dt * 60;
+        p.life -= dt * 60;
+      }
+      state.particles = state.particles.filter(p => p.life > 0);
+
+      updateUI();
+    }
+
+    function addFloatingText(text, x, y, color){
+      state.particles.push({x,y,vx:0,vy:-0.5,life:50,color,text});
+    }
+
+    function spawnCustomer(){
+      const px = world.restaurant.x + 350 + Math.random()*120;
+      const py = world.restaurant.y + 365 + Math.random()*25;
+      state.customers.push({
+        x:px, y:py, tx:world.restaurant.x + 230 + Math.random()*60, ty:world.restaurant.y + 285 + Math.random()*45,
+        state:"walkingIn", wait:0,
+        tone:["#ffcfb0","#d89572","#8d5b3d","#f3d2b8"][Math.floor(Math.random()*4)],
+        shirt:["#ff5d73","#4fc3ff","#7be495","#ffd166","#c792ff"][Math.floor(Math.random()*5)]
+      });
+    }
+
+    function setWorldTransform(){
+      ctx.translate(innerWidth/2 + state.camX, innerHeight/2 + state.camY);
+      ctx.scale(state.zoom, state.zoom);
+      ctx.translate(-world.w/2, -world.h/2);
+    }
+
+    function roundRect(x,y,w,h,r,fill,stroke){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.arcTo(x+w,y,x+w,y+h,r);
+      ctx.arcTo(x+w,y+h,x,y+h,r);
+      ctx.arcTo(x,y+h,x,y,r);
+      ctx.arcTo(x,y,x+w,y,r);
+      if(fill){ ctx.fillStyle = fill; ctx.fill(); }
+      if(stroke){ ctx.strokeStyle = stroke; ctx.stroke(); }
+    }
+
+    function drawShadowEllipse(x,y,rx,ry,a=0.16){
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawGround(){
+      const g = ctx.createLinearGradient(0,0,0,world.h);
+      g.addColorStop(0,"#9fe084");
+      g.addColorStop(1,"#71b957");
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,world.w,world.h);
+
+      // decorative stripes
+      for(let y=0;y<world.h;y+=46){
+        ctx.fillStyle = y % 92 === 0 ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.03)";
+        ctx.fillRect(0,y,world.w,24);
+      }
+    }
+
+    function drawRoad(){
+      roundRect(120, world.roadY, world.w-240, 110, 30, "#5b6268");
+      ctx.fillStyle = "#c9bb7d";
+      for(let x=180; x<world.w-180; x+=70){
+        ctx.fillRect(x, world.roadY + 52, 36, 6);
+      }
+    }
+
+    function drawTrees(){
+      const trees = [
+        [110,180],[170,125],[1610,120],[1710,210],[95,1050],[1660,1000],[1510,920],[230,990],[820,1085]
+      ];
+      for(const [x,y] of trees){
+        drawShadowEllipse(x,y+28,28,9,0.18);
+        ctx.fillStyle = "#7f562f";
+        roundRect(x-6,y+14,12,24,4, "#7b4d2a");
+        ctx.fillStyle = "#2c8d42";
+        ctx.beginPath(); ctx.arc(x,y,28,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#3ca554";
+        ctx.beginPath(); ctx.arc(x-10,y-8,18,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x+12,y-6,17,0,Math.PI*2); ctx.fill();
+      }
+    }
+
+    function drawFactory(){
+      const f = world.factory;
+      drawShadowEllipse(f.x+f.w/2, f.y+f.h+18, 220, 22, 0.18);
+      roundRect(f.x, f.y, f.w, f.h, 22, "#d7dde3", "#00000010");
+      roundRect(f.x+18, f.y+18, f.w-36, 88, 18, "#c3ccd5");
+      roundRect(f.x+26, f.y+140, 160, 150, 14, "#a8b6c3");
+      roundRect(f.x+210, f.y+140, 220, 150, 14, "#8ea0ae");
+      roundRect(f.x+150, f.y+250, 150, 64, 10, "#6f7d88");
+      ctx.fillStyle = "#eef3f7";
+      for(let i=0;i<6;i++){
+        roundRect(f.x+34+i*67, f.y+36, 42, 34, 8, "#ecf6ff");
+      }
+      // Roof accents
+      ctx.fillStyle = "#c9362b";
+      roundRect(f.x+25,f.y+12,f.w-50,18,9,"#c9362b");
+      ctx.fillStyle = "#f9d13f";
+      roundRect(f.x+160,f.y+45,140,30,14,"#f9d13f");
+      ctx.fillStyle = "#9f2a22";
+      ctx.font = "900 24px Arial";
+      ctx.fillText("BURGER FACTORY", f.x+171, f.y+67);
+
+      // smoke stacks
+      for(let i=0;i<2;i++){
+        const sx = f.x + 340 + i*55;
+        roundRect(sx, f.y-26, 32, 84, 10, "#8d9ca8");
+        roundRect(sx+4, f.y-30, 24, 10, 5, "#b8c4ce");
+        for(let k=0;k<3;k++){
+          const t = (state.time*0.5 + i*0.35 + k*0.22) % 1;
+          const px = sx + 16 + Math.sin(t*4+i)*10;
+          const py = f.y - 35 - t*70;
+          ctx.globalAlpha = 0.16 * (1-t);
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath(); ctx.arc(px, py, 8 + t*10, 0, Math.PI*2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // machines visible inside
+      for(let i=0;i<Math.min(state.machines,5);i++){
+        const mx = f.x + 58 + (i%3)*110;
+        const my = f.y + 160 + Math.floor(i/3)*86;
+        roundRect(mx,my,78,48,10,"#f2c347");
+        roundRect(mx+8,my+10,24,18,5,"#7d5a2a");
+        roundRect(mx+40,my+10,26,14,5,"#ddd");
+        drawShadowEllipse(mx+39,my+57,30,5,0.12);
+      }
+    }
+
+    function drawStorage(){
+      const s = world.storage;
+      drawShadowEllipse(s.x+s.w/2, s.y+s.h+12, 80, 12, 0.17);
+      roundRect(s.x,s.y,s.w,s.h,18,"#eef3f8");
+      roundRect(s.x+15,s.y+15,s.w-30,24,12,"#d43c2c");
+      ctx.fillStyle = "#fff";
+      ctx.font = "900 20px Arial";
+      ctx.fillText("LAGER", s.x+56, s.y+34);
+      // burger crates
+      const total = Math.min(18, Math.floor(state.factoryBurgers / 2));
+      for(let i=0;i<total;i++){
+        const x = s.x + 22 + (i%4)*36;
+        const y = s.y + 60 + Math.floor(i/4)*32;
+        roundRect(x,y,28,22,6,"#bd8750");
+        roundRect(x+4,y+4,20,6,3,"#ffdb77");
+      }
+    }
+
+    function drawRestaurant(){
+      const r = world.restaurant;
+      drawShadowEllipse(r.x+r.w/2, r.y+r.h+18, 220, 22, 0.18);
+      roundRect(r.x, r.y, r.w, r.h, 24, "#ede8dd");
+      roundRect(r.x+18, r.y+18, r.w-36, 92, 20, "#c92b22");
+      roundRect(r.x+18, r.y+110, r.w-36, r.h-128, 20, "#f1ede5");
+      roundRect(r.x+65, r.y+58, 300, 32, 16, "#f8cd43");
+      ctx.fillStyle = "#9c231c";
+      ctx.font = "900 34px Arial";
+      ctx.fillText("McBurger", r.x+120, r.y+84);
+
+      // windows
+      for(let i=0;i<5;i++){
+        roundRect(r.x+36+i*74,r.y+144,54,80,10,"#bfe9ff");
+      }
+      // door
+      roundRect(r.x+182,r.y+238,70,104,12,"#5d473b");
+      roundRect(r.x+195,r.y+252,44,58,9,"#86d0ff");
+      // counter
+      roundRect(r.x+88,r.y+270,170,48,14,"#d46849");
+      // logo burger
+      ctx.save();
+      ctx.translate(r.x+48, r.y+60);
+      ctx.fillStyle = "#f3c743"; roundRect(0,0,44,10,5,"#f3c743");
+      ctx.fillStyle = "#6e3e1e"; roundRect(4,12,36,7,4,"#6e3e1e");
+      ctx.fillStyle = "#5ac05b"; roundRect(2,20,40,5,2,"#5ac05b");
+      ctx.fillStyle = "#f3c743"; roundRect(0,28,44,10,5,"#f3c743");
+      ctx.restore();
+
+      // parking lot
+      const p = world.parking;
+      roundRect(p.x,p.y,p.w,p.h,18,"#7b8188");
+      for(let i=0;i<6;i++){
+        ctx.strokeStyle = "#cdd3d8";
+        ctx.beginPath();
+        ctx.moveTo(p.x+25+i*84,p.y+20);
+        ctx.lineTo(p.x+25+i*84,p.y+130);
+        ctx.stroke();
+      }
+    }
+
+    function getTruckPos(truck){
+      const start = {x: world.factory.x + world.factory.w - 30, y: world.roadY + 55};
+      const end = {x: world.restaurant.x + 60, y: world.roadY + 55};
+      const x = lerp(start.x, end.x, truck.t);
+      const y = lerp(start.y, end.y, truck.t) + Math.sin((truck.t*6 + state.time*0.7))*2;
+      return {x,y};
+    }
+
+    function drawTruck(truck, idx){
+      const {x,y} = getTruckPos(truck);
+      drawShadowEllipse(x, y+18, 30, 9, 0.18);
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.fillStyle = "#d63d2f";
+      roundRect(-26,-10,52,20,8,"#d63d2f");
+      ctx.fillStyle = "#f6f8fb";
+      roundRect(-16,-8,18,13,4,"#f6f8fb");
+      ctx.fillStyle = "#f3c743";
+      roundRect(4,-8,17,13,4,"#f3c743");
+      ctx.fillStyle = "#2b2b2b";
+      ctx.beginPath(); ctx.arc(-14,12,6,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(16,12,6,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawCustomers(){
+      for(const c of state.customers){
+        drawShadowEllipse(c.x, c.y+13, 11, 4, 0.14);
+        ctx.fillStyle = c.shirt;
+        roundRect(c.x-8, c.y-5, 16, 18, 6, c.shirt);
+        ctx.fillStyle = c.tone;
+        ctx.beginPath(); ctx.arc(c.x, c.y-11, 7, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#333"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(c.x-4,c.y+12); ctx.lineTo(c.x-6,c.y+18); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(c.x+4,c.y+12); ctx.lineTo(c.x+6,c.y+18); ctx.stroke();
+      }
+    }
+
+    function drawParticles(){
+      ctx.save();
+      ctx.textAlign = "center";
+      for(const p of state.particles){
+        const alpha = clamp(p.life/50,0,1);
+        ctx.globalAlpha = alpha;
+        if(p.text){
+          ctx.fillStyle = p.color;
+          ctx.font = "bold 16px Arial";
+          ctx.fillText(p.text, p.x, p.y);
+        } else {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x,p.y,2 + (1-alpha)*2,0,Math.PI*2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawBurgerIcons(){
+      // moving burger belt inside factory
+      const baseX = world.factory.x + 225;
+      const baseY = world.factory.y + 205;
+      for(let i=0;i<8;i++){
+        const t = (state.time*1.2 + i*0.14) % 1;
+        const x = baseX + t*170;
+        const y = baseY + Math.sin(i+t*7)*4;
+        drawMiniBurger(x,y,0.9);
+      }
+
+      // burger stock at counter
+      const count = Math.min(10, state.restaurantBurgers);
+      for(let i=0;i<count;i++){
+        drawMiniBurger(world.restaurant.x + 104 + (i%5)*28, world.restaurant.y + 256 + Math.floor(i/5)*20, 0.8);
+      }
+    }
+
+    function drawMiniBurger(x,y,s=1){
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.scale(s,s);
+      ctx.fillStyle = "#efc14a"; roundRect(-9,-7,18,5,2,"#efc14a");
+      ctx.fillStyle = "#6e3e1e"; roundRect(-7,-1,14,4,2,"#6e3e1e");
+      ctx.fillStyle = "#55b95b"; roundRect(-8,2,16,2,1,"#55b95b");
+      ctx.fillStyle = "#efc14a"; roundRect(-9,5,18,5,2,"#efc14a");
+      ctx.restore();
+    }
+
+    function drawScene(){
+      ctx.clearRect(0,0,innerWidth,innerHeight);
+
+      // sky and far shadows
+      const sky = ctx.createLinearGradient(0,0,0,innerHeight);
+      sky.addColorStop(0,"#97daff");
+      sky.addColorStop(1,"#eefcff");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0,0,innerWidth,innerHeight);
+
+      ctx.save();
+      setWorldTransform();
+      drawGround();
+      drawTrees();
+      drawRoad();
+      drawFactory();
+      drawStorage();
+      drawRestaurant();
+      drawBurgerIcons();
+
+      for(const truck of state.trucks) drawTruck(truck);
+      drawCustomers();
+      drawParticles();
+      ctx.restore();
+
+      // vignette
+      const vg = ctx.createRadialGradient(innerWidth/2, innerHeight/2, innerWidth*0.25, innerWidth/2, innerHeight/2, innerWidth*0.72);
+      vg.addColorStop(0,"rgba(0,0,0,0)");
+      vg.addColorStop(1,"rgba(0,0,0,0.18)");
+      ctx.fillStyle = vg;
+      ctx.fillRect(0,0,innerWidth,innerHeight);
+    }
+
+    let last = performance.now();
+    function frame(now){
+      const dt = Math.min(0.05, (now-last)/1000);
+      last = now;
+      update(dt);
+      drawScene();
+      requestAnimationFrame(frame);
+    }
+
+    resize();
+    addEvent("Spiel bereit.");
+    resetGame();
+    window.addEventListener("resize", resize);
+    requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>
