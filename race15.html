@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>race15</title>
+<style>
+html,body{margin:0;height:100%;background:#0d1116;font-family:system-ui;overflow:hidden}
+.wrap{position:fixed;inset:0;display:grid;place-items:center;padding:12px;box-sizing:border-box}
+.frame{position:relative;width:min(1280px,100%);aspect-ratio:16/9;overflow:hidden;border-radius:22px;box-shadow:0 24px 80px rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.08);background:#10161b}
+canvas{width:100%;height:100%;display:block;background:#79c97b}
+.ui{position:absolute;inset:0;pointer-events:none}
+.rowui{position:absolute;display:flex;gap:10px;pointer-events:auto}
+.topL{left:14px;top:14px}.midL{left:14px;top:72px}.topR{right:14px;top:14px}
+.chip,.btn,.toast{background:rgba(12,16,20,.78);border:1px solid rgba(255,255,255,.10);border-radius:16px;color:#eef5f7;backdrop-filter:blur(10px)}
+.chip{padding:12px 14px;font-weight:800;display:flex;align-items:center;gap:12px}
+.btn{padding:11px 14px;font-weight:900;cursor:pointer;user-select:none}
+.btn.sel{outline:2px solid rgba(255,214,90,.9);box-shadow:0 0 0 4px rgba(255,214,90,.12) inset}
+.bar{width:200px;height:12px;background:rgba(255,255,255,.10);border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#80ff9f,#ffd65a)}
+.toast{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);padding:11px 16px;max-width:min(760px,92%);font-weight:700}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.48);backdrop-filter:blur(7px);z-index:20;pointer-events:auto}
+.modal{width:min(960px,94%);background:rgba(10,12,14,.92);border:1px solid rgba(255,255,255,.10);border-radius:20px;overflow:hidden;box-shadow:0 24px 90px rgba(0,0,0,.65);color:#eef5f7}
+.head{display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid rgba(255,255,255,.10);font-weight:900}
+.close{padding:8px 11px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);cursor:pointer}
+.body{padding:16px 18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+.act{padding:10px 12px;border-radius:12px;background:rgba(255,214,90,.18);border:1px solid rgba(255,214,90,.28);font-weight:900;cursor:pointer}
+.disabled{opacity:.4;pointer-events:none}
+.note{margin-top:12px;color:rgba(238,245,247,.78);font-size:13px;font-weight:650;line-height:1.35}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.bar{width:120px}}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="frame">
+<canvas id="game"></canvas>
+<div class="ui">
+  <div class="rowui topL"><div class="chip"><span id="lvlText">Level 1</span><span id="xpText">0/5 XP</span><span class="bar"><i id="xpFill"></i></span><span id="coinText">5 Coins</span></div></div>
+  <div class="rowui midL"><div class="btn" id="barnBtn">Scheune</div><div class="btn" id="shopBtn">Shop</div></div>
+  <div class="rowui topR"><div class="btn sel" id="seedWheat">Weizen</div><div class="btn" id="seedCarrot">Karotte</div><div class="btn" id="seedBeet">Beete</div></div>
+  <div class="toast" id="toast">Saat wählen → freies Feld klicken. Reif = ernten.</div>
+  <div class="overlay" id="overlay"><div class="modal"><div class="head"><span id="modalTitle">Inventar</span><button class="close" id="closeBtn" type="button">X</button></div><div class="body" id="modalBody"></div></div></div>
+</div></div></div>
+<script>
+(() => {
+const LOG_W=960, LOG_H=540;
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+ctx.imageSmoothingEnabled=true;
+function resize(){const dpr=Math.max(1,window.devicePixelRatio||1);canvas.width=LOG_W*dpr;canvas.height=LOG_H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=true;}
+window.addEventListener('resize',resize,{passive:true});resize();
+
+const state={coins:5,level:1,xp:0,xpNeed:5,selected:'wheat',wheat:0,carrots:0,beets:0,wheatSeed:3,carrotSeed:2,beetSeed:2,fishRed:0,fishBlue:0,fieldsUnlocked:2,fields:[],fishing:{active:false,t0:0,resolved:false,fishColor:null},modal:null};
+const GROW={wheat:5000,carrot:7000,beet:9000}, HARVEST=3, SEEDBACK=1;
+const barn={x:64,y:74,w:170,h:128}, house={x:398,y:78,w:154,h:114}, shop={x:728,y:234,w:184,h:132}, lake={x:676,y:52,w:236,h:146};
+const dock={x:lake.x+lake.w-70,y:lake.y+lake.h-34,w:56,h:22};
+for(let r=0;r<2;r++)for(let c=0;c<3;c++)state.fields.push({x:230+c*166,y:240+r*126,w:134,h:104,crop:null,t0:0});
+
+const lvlText=document.getElementById('lvlText'), xpText=document.getElementById('xpText'), xpFill=document.getElementById('xpFill'), coinText=document.getElementById('coinText');
+const toastEl=document.getElementById('toast'), overlay=document.getElementById('overlay'), modalTitle=document.getElementById('modalTitle'), modalBody=document.getElementById('modalBody');
+function toast(m){toastEl.textContent=m;}
+function updateHUD(){lvlText.textContent='Level '+state.level;xpText.textContent=state.xp+'/'+state.xpNeed+' XP';xpFill.style.width=Math.floor(state.xp/state.xpNeed*100)+'%';coinText.textContent=state.coins+' Coins';document.getElementById('seedWheat').classList.toggle('sel',state.selected==='wheat');document.getElementById('seedCarrot').classList.toggle('sel',state.selected==='carrot');document.getElementById('seedBeet').classList.toggle('sel',state.selected==='beet');}
+function gainXP(n){state.xp+=n;while(state.xp>=state.xpNeed){state.xp-=state.xpNeed;state.level++;state.xpNeed=5+(state.level-1)*5;toast('Level Up! Jetzt Level '+state.level);}updateHUD();}
+function openModal(title,html){state.modal=title;modalTitle.textContent=title;modalBody.innerHTML=html;overlay.style.display='flex';bindModal();}
+function closeModal(){state.modal=null;overlay.style.display='none';modalBody.innerHTML='';}
+document.getElementById('closeBtn').addEventListener('click',closeModal);
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
+document.getElementById('barnBtn').addEventListener('click',openBarn);
+document.getElementById('shopBtn').addEventListener('click',openShop);
+document.getElementById('seedWheat').addEventListener('click',()=>{state.selected='wheat';updateHUD();toast('Weizen gewählt');});
+document.getElementById('seedCarrot').addEventListener('click',()=>{state.selected='carrot';updateHUD();toast('Karotte gewählt');});
+document.getElementById('seedBeet').addEventListener('click',()=>{state.selected='beet';updateHUD();toast('Beete gewählt');});
+
+function openBarn(){openModal('Scheune / Inventar',`
+<div class="grid">
+<div class="row"><span>Coins</span><strong>${state.coins}</strong></div>
+<div class="row"><span>Weizen</span><strong>${state.wheat}</strong></div>
+<div class="row"><span>Karotten</span><strong>${state.carrots}</strong></div>
+<div class="row"><span>Rote Beete</span><strong>${state.beets}</strong></div>
+<div class="row"><span>Weizen-Saat</span><strong>${state.wheatSeed}</strong></div>
+<div class="row"><span>Karotten-Saat</span><strong>${state.carrotSeed}</strong></div>
+<div class="row"><span>Beete-Saat</span><strong>${state.beetSeed}</strong></div>
+<div class="row"><span>Roter Fisch</span><strong>${state.fishRed}</strong></div>
+<div class="row"><span>Blauer Fisch</span><strong>${state.fishBlue}</strong></div>
+<div class="row"><span>Felder</span><strong>${state.fieldsUnlocked}/6</strong></div>
+</div><div class="note">Alle Saaten geben 3 Ernte + 1 Saat zurück. So kannst du Karotten und Beete direkt wieder mehrfach pflanzen.</div>`);}
+function shopRow(id,label,disabled,txt){return `<div class="row"><span>${label}</span><span class="act ${disabled?'disabled':''}" data-id="${id}">${txt}</span></div>`;}
+function openShop(){openModal('Shop',`
+<div class="grid">
+${shopRow('sellWheat','2 Weizen → 1 Coin (+1 XP)', state.wheat<2, 'Verkaufen')}
+${shopRow('sellCarrot','2 Karotten → 1 Coin (+1 XP)', state.carrots<2, 'Verkaufen')}
+${shopRow('sellBeet','1 Rote Beete → 3 Coins (+1 XP)', state.beets<1, 'Verkaufen')}
+${shopRow('sellRed','1 Roter Fisch → 3 Coins (+1 XP)', state.level<2 || state.fishRed<1, 'Verkaufen')}
+${shopRow('sellBlue','1 Blauer Fisch → 4 Coins (+1 XP)', state.level<2 || state.fishBlue<1, 'Verkaufen')}
+${shopRow('buyCarrot','Karotten-Saat +1 (5 Coins)', state.coins<5, 'Kaufen')}
+${shopRow('buyBeet','Beete-Saat +1 (5 Coins)', state.coins<5, 'Kaufen')}
+${shopRow('buyField','Feld freischalten +1 (10 Coins)', state.coins<10 || state.fieldsUnlocked>=6, 'Kaufen')}
+</div><div class="note">Verkaufen gibt immer +1 XP. Angeln geht ab Level 2 am Steg.</div>`);}
+function bindModal(){modalBody.querySelectorAll('[data-id]').forEach(el=>el.addEventListener('click',()=>{if(el.classList.contains('disabled'))return;const id=el.dataset.id;
+if(id==='sellWheat'){state.wheat-=2;state.coins+=1;gainXP(1);toast('+1 Coin');}
+if(id==='sellCarrot'){state.carrots-=2;state.coins+=1;gainXP(1);toast('+1 Coin');}
+if(id==='sellBeet'){state.beets-=1;state.coins+=3;gainXP(1);toast('+3 Coins');}
+if(id==='sellRed'){state.fishRed-=1;state.coins+=3;gainXP(1);toast('+3 Coins');}
+if(id==='sellBlue'){state.fishBlue-=1;state.coins+=4;gainXP(1);toast('+4 Coins');}
+if(id==='buyCarrot'){state.coins-=5;state.carrotSeed+=1;toast('+1 Karotten-Saat');}
+if(id==='buyBeet'){state.coins-=5;state.beetSeed+=1;toast('+1 Beete-Saat');}
+if(id==='buyField'){state.coins-=10;state.fieldsUnlocked+=1;toast('Neues Feld freigeschaltet');}
+updateHUD();openShop();}));}
+
+function plant(f){
+  if(state.selected==='wheat'){if(state.wheatSeed<1){toast('Keine Weizen-Saat');return;}state.wheatSeed--;}
+  if(state.selected==='carrot'){if(state.carrotSeed<1){toast('Keine Karotten-Saat');return;}state.carrotSeed--;}
+  if(state.selected==='beet'){if(state.beetSeed<1){toast('Keine Beete-Saat');return;}state.beetSeed--;}
+  f.crop=state.selected; f.t0=performance.now(); updateHUD(); toast('Gepflanzt');
+}
+function harvest(f){
+  if(performance.now()-f.t0<GROW[f.crop]){toast('Noch nicht reif');return;}
+  if(f.crop==='wheat'){state.wheat+=HARVEST;state.wheatSeed+=SEEDBACK;}
+  if(f.crop==='carrot'){state.carrots+=HARVEST;state.carrotSeed+=SEEDBACK;}
+  if(f.crop==='beet'){state.beets+=HARVEST;state.beetSeed+=SEEDBACK;}
+  f.crop=null; f.t0=0; updateHUD(); toast('Geerntet: +3 Ernte +1 Saat');
+}
+function fish(){
+  if(state.level<2){toast('Angeln ab Level 2');return;}
+  if(state.fishing.active){toast('Warte...');return;}
+  state.fishing.active=true; state.fishing.t0=performance.now(); state.fishing.resolved=false; state.fishing.fishColor=null;
+  toast('Angel ausgeworfen...');
+}
+function updateFishing(){
+  if(!state.fishing.active) return;
+  const t=performance.now()-state.fishing.t0;
+  if(t>1600 && !state.fishing.resolved){
+    state.fishing.resolved=true;
+    if(Math.random()<0.55){state.fishRed++;state.fishing.fishColor='#ff6f5f';toast('Gefangen: Roter Fisch');}
+    else{state.fishBlue++;state.fishing.fishColor='#63a9ff';toast('Gefangen: Blauer Fisch');}
+    updateHUD();
+  }
+  if(t>2800){state.fishing.active=false;state.fishing.resolved=false;state.fishing.fishColor=null;}
+}
+
+function pos(ev){const r=canvas.getBoundingClientRect();return {x:(ev.clientX-r.left)/r.width*LOG_W,y:(ev.clientY-r.top)/r.height*LOG_H};}
+function inRect(p,r){return p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h;}
+canvas.addEventListener('click',ev=>{
+  if(state.modal)return;
+  const p=pos(ev);
+  if(inRect(p,barn)){openBarn();return;}
+  if(inRect(p,shop)){openShop();return;}
+  if(inRect(p,lake) || inRect(p,dock)){fish();return;}
+  for(let i=0;i<state.fields.length;i++){
+    const f=state.fields[i];
+    if(inRect(p,f)){ if(i>=state.fieldsUnlocked){toast('Feld gesperrt');return;} if(!f.crop) plant(f); else harvest(f); return; }
+  }
+  toast('Hier gibt es nichts zu klicken.');
+});
+
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function box(x,y,w,h,r,fill,stroke){ctx.fillStyle=fill;rr(x,y,w,h,r);ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;rr(x+1,y+1,w-2,h-2,r);ctx.stroke();}}
+function dots(x,y,w,h,a,b,step=8){for(let yy=y;yy<y+h;yy+=step){for(let xx=x;xx<x+w;xx+=step){ctx.fillStyle=(((xx+yy)/step)|0)%2===0?a:b;ctx.fillRect(xx,yy,2,2);}}}
+function text(t,x,y,c,size=16,align='left'){ctx.fillStyle=c;ctx.font=`800 ${size}px system-ui`;ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillText(t,x,y);ctx.textAlign='left';}
+function drawTree(x,y,s=1){box(x,y+11*s,20*s,16*s,7*s,'#6b4b2e','rgba(0,0,0,.18)');box(x-12*s,y-2*s,46*s,30*s,16*s,'#32914e','rgba(0,0,0,.10)');box(x-2*s,y-10*s,28*s,20*s,12*s,'#49b764',null);}
+function drawFlowerPatch(x,y,w,h){for(let i=0;i<24;i++){const px=x+(i*17)%w, py=y+((i*31)%h); ctx.fillStyle=['#ffd65a','#ff8aa0','#a6d6ff','#ffffff'][i%4]; ctx.fillRect(px,py,3,3); ctx.fillStyle='#51a05f'; ctx.fillRect(px+1,py+3,1,2);}}
+function drawBuilding(r,title,roof,signFill){
+  box(r.x+5,r.y+7,r.w,r.h,18,'rgba(0,0,0,.20)',null);
+  box(r.x,r.y,r.w,r.h,18,'#cfbc96','rgba(0,0,0,.18)');
+  box(r.x-6,r.y-10,r.w+12,42,20,roof,'rgba(0,0,0,.18)');
+  box(r.x+16,r.y+14,r.w-32,16,8,signFill,'rgba(0,0,0,.12)');
+  text(title,r.x+r.w/2,r.y+22,'#10161b',13,'center');
+  box(r.x+10,r.y+40,r.w-20,r.h-48,18,'rgba(255,255,255,.06)',null);
+  box(r.x+r.w*0.44,r.y+r.h*0.43,r.w*0.12,r.h*0.42,8,'#6f4b2f','rgba(255,255,255,.08)');
+  box(r.x+r.w*0.14,r.y+r.h*0.48,r.w*0.18,r.h*0.16,6,'#9fdcff','rgba(0,0,0,.14)');
+  box(r.x+r.w*0.68,r.y+r.h*0.48,r.w*0.18,r.h*0.16,6,'#9fdcff','rgba(0,0,0,.14)');
+}
+function drawFence(x,y,w){for(let i=0;i<w;i+=18){box(x+i,y,4,16,2,'#ddceb0','rgba(0,0,0,.16)');box(x+i+4,y+4,14,4,2,'#f0e5cf',null);}}
+function drawField(p,i){
+  const unlocked=i<state.fieldsUnlocked;
+  box(p.x+3,p.y+5,p.w,p.h,18,'rgba(0,0,0,.18)',null);
+  box(p.x,p.y,p.w,p.h,18,unlocked?'#9b7a56':'#252a30','rgba(255,255,255,.12)');
+  box(p.x+10,p.y+10,p.w-20,p.h-20,14,unlocked?'#55341f':'#1a1f25','rgba(0,0,0,.24)');
+  if(!unlocked){text('LOCK',p.x+p.w/2,p.y+p.h/2-8,'rgba(255,255,255,.62)',18,'center');text('10 Coins',p.x+p.w/2,p.y+p.h/2+14,'rgba(255,255,255,.46)',13,'center');return;}
+  ctx.fillStyle='rgba(255,255,255,.06)';for(let xx=p.x+14;xx<p.x+p.w-14;xx+=10)ctx.fillRect(xx,p.y+12,1,p.h-24);
+  if(!p.crop)return;
+  const t=Math.max(0,Math.min(1,(performance.now()-p.t0)/GROW[p.crop])), ready=t>=1;
+  for(let k=0;k<6;k++){
+    const row=Math.floor(k/3), col=k%3, bx=p.x+34+col*24, by=p.y+36+row*24;
+    if(p.crop==='wheat'){ctx.fillStyle='#59cb77';ctx.fillRect(bx,by-16,3,16);if(t>.35){ctx.fillStyle='#f2d87f';ctx.fillRect(bx-3,by-12,9,4);}if(t>.70){ctx.fillRect(bx-3,by-6,9,4);}}
+    if(p.crop==='carrot'){ctx.fillStyle='#55c76f';ctx.fillRect(bx,by-17,3,17);if(t>.45){ctx.fillStyle='#ff9736';ctx.fillRect(bx-3,by-2,8,13);ctx.fillStyle='#dd6d18';ctx.fillRect(bx-2,by+8,6,3);}}
+    if(p.crop==='beet'){ctx.fillStyle='#55c76f';ctx.fillRect(bx,by-17,3,17);if(t>.45){ctx.fillStyle='#d44b64';ctx.fillRect(bx-5,by,10,10);ctx.fillStyle='#b2334c';ctx.fillRect(bx-3,by+7,6,2);}}
+  }
+  box(p.x+14,p.y+p.h-16,p.w-28,8,5,'rgba(255,255,255,.10)',null);
+  box(p.x+14,p.y+p.h-16,Math.max(1,Math.floor((p.w-28)*t)),8,5,ready?'rgba(125,255,138,.92)':'rgba(255,214,90,.92)',null);
+  if(ready){box(p.x+12,p.y+12,24,18,8,'rgba(125,255,138,.22)','rgba(125,255,138,.35)');text('✓',p.x+24,p.y+21,'#0b0f12',14,'center');}
+}
+function drawFishOnLine(x,y,color){
+  box(x-7,y+8,14,8,6,color,'rgba(0,0,0,.15)');
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(x+7,y+12);ctx.lineTo(x+15,y+8);ctx.lineTo(x+15,y+16);ctx.closePath();ctx.fill();
+  ctx.fillStyle='white';ctx.fillRect(x-3,y+11,2,2);
+}
+function draw(){
+  ctx.clearRect(0,0,LOG_W,LOG_H);
+  ctx.fillStyle='#79c97b';ctx.fillRect(0,0,LOG_W,LOG_H);dots(0,0,LOG_W,LOG_H,'rgba(255,255,255,.05)','rgba(0,0,0,.05)',10);
+  for(let x=20;x<LOG_W-20;x+=90)drawTree(x,14,1);
+  drawTree(18,180,1);drawTree(18,300,1);drawTree(18,420,1);drawTree(910,180,1);drawTree(910,310,1);drawTree(910,430,1);
+  box(0,162,LOG_W,72,0,'#d3b780',null);dots(0,162,LOG_W,72,'rgba(255,255,255,.06)','rgba(0,0,0,.08)',6);box(420,234,82,138,12,'#d3b780',null);box(640,162,62,136,12,'#d3b780',null);
+  box(0,490,LOG_W,50,0,'#65727b',null);box(0,500,LOG_W,4,0,'#2a3339',null);box(0,520,LOG_W,4,0,'#2a3339',null);for(let x=0;x<LOG_W;x+=26)box(x,504,16,12,0,'#a87e4f',null);
+  box(lake.x+5,lake.y+8,lake.w,lake.h,24,'rgba(0,0,0,.20)',null);box(lake.x,lake.y,lake.w,lake.h,24,'#34abda','rgba(255,255,255,.14)');box(lake.x+10,lake.y+10,lake.w-20,lake.h-20,20,'#2684b7',null);for(let i=0;i<26;i++){ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(lake.x+18+(i*13)%185,lake.y+22+(i*17)%90,18,2);}box(dock.x,dock.y,dock.w,dock.h,6,'#b98b54','rgba(0,0,0,.18)');text(state.level>=2?'See / Angeln':'See / ab L2',lake.x+lake.w/2,lake.y+lake.h+16,'rgba(255,255,255,.82)',14,'center');
+  if(state.fishing.active){const sx=dock.x+8,sy=dock.y+6,ex=lake.x+lake.w*0.58,ey=lake.y+lake.h*0.62,mx=(sx+ex)/2,my=Math.min(sy,ey)-40;ctx.strokeStyle='rgba(255,255,255,.78)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sx,sy);ctx.quadraticCurveTo(mx,my,ex,ey);ctx.stroke();box(ex-4,ey-4,8,8,3,'#ff647f','rgba(0,0,0,.18)');box(ex-4,ey+4,8,5,3,'#ffd65a','rgba(0,0,0,.18)');if(state.fishing.resolved&&state.fishing.fishColor)drawFishOnLine(ex,ey,state.fishing.fishColor);}
+  drawFlowerPatch(250,82,110,30);drawFlowerPatch(566,90,70,24);drawFlowerPatch(740,212,110,18);drawFlowerPatch(84,212,70,18);
+  drawBuilding(barn,'SCHEUNE','#ff5d98','#f8a5c0');drawBuilding(house,'WOHNHAUS','#a9d8ff','#d6ecff');drawBuilding(shop,'SHOP','#ffd75d','#fff1b8');
+  drawFence(202,218,600);drawFence(202,482,600);
+  box(188,218,592,264,22,'rgba(0,0,0,.05)','rgba(255,255,255,.06)');for(let i=0;i<state.fields.length;i++)drawField(state.fields[i],i);
+  updateHUD();
+}
+function loop(){updateFishing();draw();requestAnimationFrame(loop);}
+updateHUD();toast('Race 15: cleanere Grafik + besseres Angeln.');loop();
+})();
+</script>
+</body>
+</html>
