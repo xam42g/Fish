@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Wellen-Deckungsspiel</title>
+  <style>
+    :root{
+      --bg:#f2f2f2;
+      --line:#222;
+      --wave:rgba(220,30,30,0.82);
+      --player:#1ea7ff;
+      --panel:rgba(255,255,255,0.92);
+    }
+    html,body{
+      margin:0;
+      height:100%;
+      overflow:hidden;
+      background:var(--bg);
+      font-family:Arial, sans-serif;
+      touch-action:none;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    canvas{ display:block; width:100vw; height:100vh; }
+    #hud{
+      position:fixed; top:max(12px, env(safe-area-inset-top)); left:max(12px, env(safe-area-inset-left));
+      z-index:10; background:var(--panel); border:2px solid var(--line); border-radius:12px; padding:10px 14px;
+      font-size:14px; line-height:1.45;
+    }
+    #overlay{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:rgba(255,255,255,0.5); z-index:20;
+    }
+    #card{
+      width:min(90vw, 560px); background:var(--panel); border:3px solid var(--line); border-radius:18px;
+      padding:22px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,0.12);
+    }
+    #card h1{ margin:0 0 10px 0; font-size:34px; }
+    #card p{ margin:8px 0; font-size:18px; }
+    #startBtn, #restartBtn{
+      margin-top:14px; padding:14px 24px; font-size:20px; font-weight:700; border:3px solid var(--line);
+      border-radius:14px; background:white; cursor:pointer; -webkit-appearance:none; appearance:none;
+      touch-action:manipulation;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div><strong>Steuerung:</strong> WASD / Pfeile / Touch ziehen</div>
+    <div>Punkte: <span id="score">0</span></div>
+    <div>Leben: <span id="lives">3</span></div>
+    <div>Welle: <span id="waveNum">1</span></div>
+  </div>
+
+  <div id="overlay">
+    <div id="card">
+      <h1>Wellen-Deckungsspiel</h1>
+      <p>Die Welle kommt immer komplett aus <strong>einer Richtung</strong>.</p>
+      <p>Sie tötet alles, <strong>außer du stehst hinter einem der 4 Blöcke</strong>.</p>
+      <p>Die Welle geht <strong>nicht durch die Blöcke</strong>.</p>
+      <button id="startBtn" type="button">Starten</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const card = document.getElementById("card");
+    const scoreEl = document.getElementById("score");
+    const livesEl = document.getElementById("lives");
+    const waveNumEl = document.getElementById("waveNum");
+    const startBtn = document.getElementById("startBtn");
+
+    const keys = {};
+    addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+    addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+    const touch = { active:false, x:0, y:0, dx:0, dy:0 };
+
+    const world = { w:0, h:0, arena:null, blocks:[] };
+    const player = { x:0, y:0, r:14, speed:270 };
+    let running = false;
+    let score = 0;
+    let lives = 3;
+    let waveCount = 0;
+    let spawnCooldown = 0;
+    let invuln = 0;
+    let currentWave = null;
+
+    function setUI(){
+      scoreEl.textContent = Math.floor(score);
+      livesEl.textContent = lives;
+      waveNumEl.textContent = Math.max(1, waveCount);
+    }
+
+    function resize(){
+      canvas.width = innerWidth;
+      canvas.height = innerHeight;
+      world.w = canvas.width;
+      world.h = canvas.height;
+      layoutArena();
+      if (!running) resetPlayer();
+    }
+
+    function layoutArena(){
+      const size = Math.min(world.w, world.h) * 0.62;
+      const x = (world.w - size) / 2;
+      const y = (world.h - size) / 2;
+      world.arena = { x, y, w:size, h:size };
+
+      const blockSize = Math.max(42, size * 0.12);
+      const gapX = size * 0.14;
+      const gapY = size * 0.12;
+      const cx = x + size/2;
+      const cy = y + size/2;
+
+      const leftX = cx - gapX/2 - blockSize;
+      const rightX = cx + gapX/2;
+      const topY = cy - gapY/2 - blockSize;
+      const bottomY = cy + gapY/2;
+
+      world.blocks = [
+        {x:leftX, y:topY, w:blockSize, h:blockSize},
+        {x:rightX, y:topY, w:blockSize, h:blockSize},
+        {x:leftX, y:bottomY, w:blockSize, h:blockSize},
+        {x:rightX, y:bottomY, w:blockSize, h:blockSize}
+      ];
+    }
+
+    function resetPlayer(){
+      player.x = world.arena.x + world.arena.w / 2;
+      player.y = world.arena.y + world.arena.h / 2;
+    }
+
+    function startGame(){
+      running = true;
+      score = 0;
+      lives = 3;
+      waveCount = 0;
+      spawnCooldown = 1.0;
+      invuln = 0;
+      currentWave = null;
+      layoutArena();
+      resetPlayer();
+      setUI();
+      overlay.style.display = "none";
+    }
+
+    function gameOver(){
+      running = false;
+      overlay.style.display = "flex";
+      card.innerHTML = `
+        <h1>Game Over</h1>
+        <p>Punkte: <strong>${Math.floor(score)}</strong></p>
+        <p>Überlebte Wellen: <strong>${waveCount}</strong></p>
+        <button id="restartBtn" type="button">Nochmal spielen</button>
+      `;
+      const btn = document.getElementById("restartBtn");
+      btn.addEventListener("click", startGame);
+      btn.addEventListener("touchend", e => { e.preventDefault(); startGame(); }, { passive:false });
+    }
+
+    function pointerPos(e){
+      const p = e.touches ? e.touches[0] : e;
+      return { x:p.clientX, y:p.clientY };
+    }
+    function onPointerStart(e){
+      if (!running) return;
+      const p = pointerPos(e);
+      touch.active = true;
+      touch.x = p.x;
+      touch.y = p.y;
+      touch.dx = 0;
+      touch.dy = 0;
+      e.preventDefault();
+    }
+    function onPointerMove(e){
+      if (!running || !touch.active) return;
+      const p = pointerPos(e);
+      touch.dx = p.x - touch.x;
+      touch.dy = p.y - touch.y;
+      e.preventDefault();
+    }
+    function onPointerEnd(){
+      touch.active = false;
+      touch.dx = 0;
+      touch.dy = 0;
+    }
+
+    canvas.addEventListener("mousedown", onPointerStart);
+    window.addEventListener("mousemove", onPointerMove);
+    window.addEventListener("mouseup", onPointerEnd);
+    canvas.addEventListener("touchstart", onPointerStart, { passive:false });
+    window.addEventListener("touchmove", onPointerMove, { passive:false });
+    window.addEventListener("touchend", onPointerEnd);
+
+    function clampToArena(){
+      const a = world.arena;
+      player.x = Math.max(a.x + player.r, Math.min(a.x + a.w - player.r, player.x));
+      player.y = Math.max(a.y + player.r, Math.min(a.y + a.h - player.r, player.y));
+    }
+
+    function circleRectOverlap(cx, cy, cr, r){
+      const nx = Math.max(r.x, Math.min(cx, r.x + r.w));
+      const ny = Math.max(r.y, Math.min(cy, r.y + r.h));
+      const dx = cx - nx;
+      const dy = cy - ny;
+      return dx*dx + dy*dy < cr*cr;
+    }
+
+    function resolveBlockCollision(){
+      for (const b of world.blocks){
+        if (!circleRectOverlap(player.x, player.y, player.r, b)) continue;
+
+        const left = Math.abs((player.x + player.r) - b.x);
+        const right = Math.abs((b.x + b.w) - (player.x - player.r));
+        const top = Math.abs((player.y + player.r) - b.y);
+        const bottom = Math.abs((b.y + b.h) - (player.y - player.r));
+        const m = Math.min(left, right, top, bottom);
+
+        if (m === left) player.x = b.x - player.r;
+        else if (m === right) player.x = b.x + b.w + player.r;
+        else if (m === top) player.y = b.y - player.r;
+        else player.y = b.y + b.h + player.r;
+      }
+      clampToArena();
+    }
+
+    function spawnWave(){
+      const dir = Math.floor(Math.random() * 4); // 0 L->R, 1 R->L, 2 T->B, 3 B->T
+      const a = world.arena;
+      const speed = Math.min(420, 135 + waveCount * 15);
+      const thickness = Math.max(70, a.w * 0.12);
+      const wave = { dir, speed, thickness, hit:false };
+
+      if (dir === 0) wave.front = a.x - thickness;
+      else if (dir === 1) wave.front = a.x + a.w + thickness;
+      else if (dir === 2) wave.front = a.y - thickness;
+      else wave.front = a.y + a.h + thickness;
+
+      currentWave = wave;
+      waveCount += 1;
+      setUI();
+    }
+
+    function updateWave(dt){
+      if (!currentWave) return;
+      const w = currentWave;
+      if (w.dir === 0) w.front += w.speed * dt;
+      if (w.dir === 1) w.front -= w.speed * dt;
+      if (w.dir === 2) w.front += w.speed * dt;
+      if (w.dir === 3) w.front -= w.speed * dt;
+
+      const a = world.arena;
+      const done =
+        (w.dir === 0 && w.front > a.x + a.w + 10) ||
+        (w.dir === 1 && w.front < a.x - 10) ||
+        (w.dir === 2 && w.front > a.y + a.h + 10) ||
+        (w.dir === 3 && w.front < a.y - 10);
+
+      if (!w.hit && hasWaveReachedPlayer()){
+        if (!playerIsSafe()) hitPlayer();
+        w.hit = true;
+      }
+
+      if (done) currentWave = null;
+    }
+
+    function hasWaveReachedPlayer(){
+      if (!currentWave) return false;
+      const w = currentWave;
+      if (w.dir === 0) return w.front >= player.x - player.r;
+      if (w.dir === 1) return w.front <= player.x + player.r;
+      if (w.dir === 2) return w.front >= player.y - player.r;
+      return w.front <= player.y + player.r;
+    }
+
+    function playerIsSafe(){
+      if (!currentWave) return false;
+      const w = currentWave;
+      for (const b of world.blocks){
+        if (w.dir === 0){
+          if (w.front >= b.x && player.x >= b.x + b.w && player.y >= b.y && player.y <= b.y + b.h) return true;
+        } else if (w.dir === 1){
+          if (w.front <= b.x + b.w && player.x <= b.x && player.y >= b.y && player.y <= b.y + b.h) return true;
+        } else if (w.dir === 2){
+          if (w.front >= b.y && player.y >= b.y + b.h && player.x >= b.x && player.x <= b.x + b.w) return true;
+        } else {
+          if (w.front <= b.y + b.h && player.y <= b.y && player.x >= b.x && player.x <= b.x + b.w) return true;
+        }
+      }
+      return false;
+    }
+
+    function hitPlayer(){
+      if (invuln > 0) return;
+      lives -= 1;
+      invuln = 1.0;
+      setUI();
+      if (lives <= 0) gameOver();
+    }
+
+    function update(dt){
+      if (!running) return;
+
+      score += dt * 10;
+      invuln = Math.max(0, invuln - dt);
+
+      let mx = 0, my = 0;
+      if (keys["w"] || keys["arrowup"]) my -= 1;
+      if (keys["s"] || keys["arrowdown"]) my += 1;
+      if (keys["a"] || keys["arrowleft"]) mx -= 1;
+      if (keys["d"] || keys["arrowright"]) mx += 1;
+      if (touch.active){
+        mx += Math.max(-1, Math.min(1, touch.dx / 45));
+        my += Math.max(-1, Math.min(1, touch.dy / 45));
+      }
+
+      const len = Math.hypot(mx, my);
+      if (len > 0){
+        player.x += (mx / len) * player.speed * dt;
+        player.y += (my / len) * player.speed * dt;
+      }
+
+      clampToArena();
+      resolveBlockCollision();
+
+      if (!currentWave){
+        spawnCooldown -= dt;
+        if (spawnCooldown <= 0){
+          spawnWave();
+          spawnCooldown = Math.max(1.1, 2.3 - waveCount * 0.05);
+        }
+      } else {
+        updateWave(dt);
+      }
+
+      setUI();
+    }
+
+    function drawBackground(){
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, world.w, world.h);
+    }
+
+    function drawArena(){
+      const a = world.arena;
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(a.x, a.y, a.w, a.h);
+    }
+
+    function drawWave(){
+      if (!currentWave) return;
+      const a = world.arena;
+      const w = currentWave;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(a.x, a.y, a.w, a.h);
+      ctx.clip();
+      ctx.fillStyle = "rgba(220,30,30,0.82)";
+
+      if (w.dir === 0){
+        ctx.fillRect(a.x, a.y, Math.max(0, w.front - a.x), a.h);
+        for (const b of world.blocks){
+          if (w.front >= b.x) ctx.clearRect(b.x, b.y, a.x + a.w - b.x, b.h);
+        }
+      } else if (w.dir === 1){
+        ctx.fillRect(w.front, a.y, Math.max(0, a.x + a.w - w.front), a.h);
+        for (const b of world.blocks){
+          if (w.front <= b.x + b.w) ctx.clearRect(a.x, b.y, b.x + b.w - a.x, b.h);
+        }
+      } else if (w.dir === 2){
+        ctx.fillRect(a.x, a.y, a.w, Math.max(0, w.front - a.y));
+        for (const b of world.blocks){
+          if (w.front >= b.y) ctx.clearRect(b.x, b.y, b.w, a.y + a.h - b.y);
+        }
+      } else {
+        ctx.fillRect(a.x, w.front, a.w, Math.max(0, a.y + a.h - w.front));
+        for (const b of world.blocks){
+          if (w.front <= b.y + b.h) ctx.clearRect(b.x, a.y, b.w, b.y + b.h - a.y);
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function drawBlocks(){
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 3;
+      for (const b of world.blocks){
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.strokeRect(b.x, b.y, b.w, b.h);
+      }
+    }
+
+    function drawPlayer(){
+      ctx.save();
+      if (invuln > 0 && Math.floor(invuln * 12) % 2 === 0) ctx.globalAlpha = 0.35;
+      ctx.fillStyle = "#1ea7ff";
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawTouchGuide(){
+      if (!touch.active) return;
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(touch.x, touch.y, 34, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.arc(touch.x + Math.max(-28, Math.min(28, touch.dx)), touch.y + Math.max(-28, Math.min(28, touch.dy)), 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw(){
+      drawBackground();
+      drawArena();
+      drawWave();
+      drawBlocks();
+      drawPlayer();
+      drawTouchGuide();
+    }
+
+    let last = performance.now();
+    function loop(now){
+      const dt = Math.min(0.033, (now - last) / 1000);
+      last = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    startBtn.addEventListener("click", startGame);
+    startBtn.addEventListener("touchend", e => { e.preventDefault(); startGame(); }, { passive:false });
+
+    resize();
+    setUI();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
