@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>McBurger Tycoon Stable</title>
+<style>
+  :root{
+    --red:#d73328;
+    --red2:#b81f18;
+    --yellow:#ffd84f;
+    --yellow2:#ffba2c;
+    --cream:#fff8ec;
+    --cream2:#ffe8b8;
+    --green:#89db63;
+    --green2:#6fc24c;
+    --road:#5f6774;
+    --road2:#747c8a;
+    --steel:#9aa9b5;
+    --shadow:0 10px 24px rgba(98,58,26,.18);
+  }
+  *{box-sizing:border-box}
+  html,body{
+    margin:0;height:100%;overflow:hidden;
+    font-family:Inter,Segoe UI,Arial,sans-serif;
+    background:linear-gradient(#9be5ff,#f7feff);
+    color:#5a2a16;
+  }
+
+  #app{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    background:
+      linear-gradient(180deg, transparent 0 64%, rgba(255,255,255,.06) 64% 68%, transparent 68% 100%),
+      linear-gradient(180deg, var(--green) 0%, var(--green2) 100%);
+  }
+
+  .topbar{
+    position:absolute;left:14px;right:14px;top:14px;
+    display:flex;justify-content:space-between;align-items:flex-start;
+    z-index:30;pointer-events:none;
+  }
+  .brand,.money,.log,.stats,.drawer,.manageBtn{
+    pointer-events:auto;
+    box-shadow:var(--shadow);
+  }
+  .brand{
+    background:linear-gradient(180deg,var(--red),var(--red2));
+    border:4px solid var(--yellow);
+    border-radius:22px;
+    color:#fff9ef;
+    padding:10px 16px;
+  }
+  .brand h1{margin:0;font-size:22px}
+  .brand .mc{color:var(--yellow);font-weight:900}
+
+  .money{
+    background:linear-gradient(180deg,var(--cream),var(--cream2));
+    border:4px solid var(--red);
+    border-radius:999px;
+    min-width:200px;
+    text-align:center;
+    padding:10px 16px;
+    color:#1a9f4d;
+    font-weight:900;
+    font-size:24px;
+  }
+  .money small{
+    display:block;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.8px;
+    color:#9e612c;
+    margin-bottom:2px;
+  }
+
+  .log{
+    position:absolute;right:14px;top:90px;
+    width:230px;
+    background:linear-gradient(180deg,var(--cream),var(--cream2));
+    border:4px solid var(--red);
+    border-radius:22px;
+    padding:10px 12px;
+    z-index:30;
+  }
+  .log h3{margin:0 0 8px;font-size:14px;color:#8f2b17}
+  .log ul{margin:0;padding-left:16px;max-height:150px;overflow:auto;font-size:11px;line-height:1.4;color:#946434}
+
+  .stats{
+    position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
+    width:min(820px, calc(100vw - 28px));
+    display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+    background:linear-gradient(180deg,var(--cream),var(--cream2));
+    border:4px solid var(--red);
+    border-radius:28px;
+    padding:10px;
+    z-index:31;
+  }
+  .stat{
+    background:linear-gradient(180deg,#fffdf8,#fff0cb);
+    border:3px solid var(--yellow);
+    border-radius:16px;
+    padding:10px 12px;
+  }
+  .stat .k{
+    font-size:10px;text-transform:uppercase;letter-spacing:.8px;
+    color:#af711d;font-weight:800;margin-bottom:5px;
+  }
+  .stat .v{font-size:26px;font-weight:900;color:#7b2d15}
+
+  .manageBtn{
+    position:absolute;right:14px;bottom:14px;z-index:32;
+  }
+
+  button{
+    appearance:none;border:none;cursor:pointer;
+    border-radius:16px;
+    padding:11px 14px;
+    background:linear-gradient(180deg,var(--yellow),var(--yellow2));
+    border:2px solid #9f3c16;
+    color:#672010;
+    font-weight:900;font-size:14px;
+    box-shadow:inset 0 -3px 0 rgba(140,54,18,.18),0 5px 10px rgba(0,0,0,.08);
+  }
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.reset{
+    background:linear-gradient(180deg,#ff7c50,var(--red));
+    color:#fff8ef;
+    border-color:#8f2416;
+  }
+
+  .drawer{
+    position:absolute;left:50%;bottom:110px;transform:translateX(-50%);
+    width:min(1180px, calc(100vw - 28px));
+    background:linear-gradient(180deg,var(--red),var(--red2));
+    border:4px solid var(--yellow);
+    border-radius:30px;
+    padding:12px;
+    z-index:32;
+    display:none;
+  }
+  .drawer.open{display:block}
+  .drawerHeader{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    color:#fff9ef;padding:0 6px 10px;
+  }
+  .drawerHeader h2{margin:0;font-size:18px}
+  .drawerHeader span{font-size:12px;color:#ffe6a4}
+  .shopGrid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  }
+  .shopCard{
+    background:linear-gradient(180deg,var(--cream),var(--cream2));
+    border:3px solid var(--yellow);
+    border-radius:20px;
+    padding:12px;
+    display:grid;
+    gap:10px;
+  }
+  .shopTop{display:flex;align-items:center;gap:10px}
+  .icon{
+    width:48px;height:48px;border-radius:15px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg,var(--yellow),var(--yellow2));
+    border:3px solid var(--red);
+    font-size:22px;
+    flex:none;
+  }
+  .shopTitle{flex:1;min-width:0}
+  .shopTitle b{display:block;font-size:14px;color:#902d18}
+  .shopTitle span{display:block;font-size:10px;color:#af711d;font-weight:700}
+  .price{
+    background:#fff8ea;border:2px solid var(--red);
+    border-radius:999px;padding:5px 9px;
+    font-size:11px;font-weight:900;color:#952f18;
+  }
+  .machineMeter{display:flex;gap:4px;margin-top:4px}
+  .machineMeter i{display:block;flex:1;height:8px;border-radius:999px;background:#efd7ab;border:1px solid #d5b46e}
+  .machineMeter i.on{background:linear-gradient(180deg,#ffdb55,#ffb929)}
+  .drawerActions{display:flex;justify-content:flex-end;margin-top:10px}
+
+  .scene{
+    position:absolute;
+    left:50%;
+    top:46%;
+    width:1800px;
+    height:980px;
+    transform:translate(-50%,-50%) scale(0.82);
+    transform-origin:center;
+    will-change:transform;
+  }
+
+  .lot{
+    position:absolute;left:80px;top:60px;right:80px;bottom:110px;
+    background:#cfd8df;
+    border-radius:40px;
+    box-shadow:inset 0 0 0 18px #a3e47c;
+  }
+
+  .factory,.store,.parking,.road,.path, .belt, .counterZone, .queueLane{position:absolute}
+
+  .factory{
+    left:140px;top:120px;width:640px;height:430px;
+    background:#dce5ea;border-radius:34px;
+    box-shadow:0 20px 30px rgba(0,0,0,.08);
+  }
+  .factory .roof{
+    position:absolute;left:18px;right:18px;top:18px;height:92px;
+    background:linear-gradient(180deg,var(--red),var(--red2));
+    border-radius:24px;
+  }
+  .factory .sign{
+    position:absolute;left:200px;top:46px;width:240px;height:40px;
+    display:grid;place-items:center;
+    background:linear-gradient(180deg,var(--yellow),var(--yellow2));
+    border-radius:18px;
+    color:#8f241d;font-weight:900;font-size:28px;
+  }
+  .factory .window{
+    position:absolute;top:32px;width:78px;height:54px;
+    background:#d9f1ff;border-radius:12px;
+  }
+  .factory .window.w1{left:36px}.factory .window.w2{left:128px}.factory .window.w3{left:500px}.factory .window.w4{left:592px}
+  .factory .pipe{position:absolute;width:26px;height:110px;background:#96a7b4;border-radius:12px;top:-34px}
+  .factory .pipe:before{content:"";position:absolute;left:3px;right:3px;top:-8px;height:10px;background:#bfccd5;border-radius:6px}
+  .factory .pipe.p1{right:66px}.factory .pipe.p2{right:104px}
+  .factory .floorA{position:absolute;left:24px;top:130px;width:360px;height:18px;background:#bfc9d1;border-radius:10px}
+  .factory .floorB{position:absolute;left:24px;top:186px;width:420px;height:120px;background:#a8b7c4;border-radius:20px}
+  .factory .floorC{position:absolute;left:24px;top:322px;width:420px;height:100px;background:#9fb0bc;border-radius:20px}
+  .factory .tower{position:absolute;right:28px;top:186px;width:110px;height:236px;background:#90a3b1;border-radius:20px}
+
+  .machineSlot{
+    position:absolute;width:108px;height:78px;border-radius:18px;
+  }
+  .machineSlot.locked{
+    border:4px dashed rgba(255,255,255,.6);
+    background:rgba(255,255,255,.14);
+    display:grid;place-items:center;
+    color:#fff;
+    font-weight:900;
+    text-align:center;
+    font-size:13px;
+  }
+  .machine{
+    width:100%;height:100%;
+    border-radius:18px;
+    background:linear-gradient(180deg,#f2c544,#e8aa21);
+    position:relative;
+    box-shadow:0 10px 18px rgba(0,0,0,.12);
+  }
+  .machine:before{
+    content:"";
+    position:absolute;left:10px;top:10px;width:30px;height:18px;border-radius:6px;background:#7c572a;
+  }
+  .machine:after{
+    content:"";
+    position:absolute;right:12px;top:14px;width:12px;height:12px;border-radius:50%;background:#60ff9a;
+    box-shadow:0 0 0 3px rgba(255,255,255,.25);
+  }
+  .machine .panel{
+    position:absolute;left:46px;top:12px;width:40px;height:24px;border-radius:7px;background:#eef4fb;
+  }
+  .machine .beltmini{
+    position:absolute;left:18px;bottom:14px;width:70px;height:10px;border-radius:5px;background:#8597a6;
+  }
+
+  .belt{
+    left:792px;top:312px;width:530px;height:70px;
+    background:#8c98a6;border-radius:26px;
+    box-shadow:0 14px 20px rgba(0,0,0,.10);
+  }
+  .belt .inner{
+    position:absolute;left:12px;right:12px;top:13px;bottom:13px;
+    background:#313840;border-radius:14px;
+    overflow:hidden;
+  }
+  .belt .slats{
+    position:absolute;inset:0;
+    background:repeating-linear-gradient(90deg, #5d6670 0 20px, transparent 20px 42px);
+  }
+
+  .store{
+    right:120px;top:78px;width:690px;height:500px;
+    background:#efe7da;border-radius:36px;
+    box-shadow:0 22px 30px rgba(0,0,0,.08);
+  }
+  .store .roof{
+    position:absolute;left:18px;right:18px;top:18px;height:96px;background:linear-gradient(180deg,var(--red),var(--red2));border-radius:24px;
+  }
+  .store .sign{
+    position:absolute;left:190px;top:50px;width:300px;height:44px;
+    display:grid;place-items:center;background:linear-gradient(180deg,var(--yellow),var(--yellow2));border-radius:18px;
+    color:#92251d;font-weight:900;font-size:36px;
+  }
+  .store .window{
+    position:absolute;top:142px;width:92px;height:110px;background:#bce8ff;border-radius:16px;
+  }
+  .store .window.w1{left:52px}.store .window.w2{left:198px}.store .window.w3{left:344px}.store .window.w4{left:490px}
+  .counter{
+    position:absolute;left:110px;top:278px;width:350px;height:126px;background:#cf694a;border-radius:24px;
+  }
+  .counter:before{content:"";position:absolute;left:24px;right:24px;top:26px;height:22px;background:#e48a6d;border-radius:10px}
+  .counter:after{content:"";position:absolute;left:46px;right:46px;bottom:30px;height:26px;background:#b85439;border-radius:10px}
+  .counter .label{
+    position:absolute;left:0;right:0;top:72px;text-align:center;color:#fff5d4;font-weight:900;font-size:26px;
+  }
+  .queueLane{
+    left:146px;top:434px;width:388px;height:100px;background:#8e9ba6;border-radius:20px;
+  }
+  .rail{position:absolute;top:448px;width:8px;height:116px;background:#8a97a2;border-radius:4px}
+  .rail.r1{left:202px}.rail.r2{left:264px}.rail.r3{left:326px}
+  .door{
+    position:absolute;right:68px;bottom:92px;width:72px;height:110px;border-radius:16px;background:#9a6846;
+  }
+  .door .glass{position:absolute;left:10px;right:10px;top:10px;height:82px;background:#bde6ff;border-radius:12px}
+
+  .path{
+    left:1850px;top:566px;width:120px;height:24px;background:#909da8;border-radius:12px;
+  }
+
+  .parking{
+    right:60px;bottom:80px;width:860px;height:210px;background:#8e98a3;border-radius:28px;
+    box-shadow:0 16px 20px rgba(0,0,0,.10);
+  }
+  .parking .inner{
+    position:absolute;left:16px;right:16px;top:16px;bottom:16px;background:#a0aab5;border-radius:22px;
+  }
+  .parkingLine{
+    position:absolute;top:26px;bottom:26px;width:3px;background:rgba(255,255,255,.55);
+  }
+
+  .road{
+    left:60px;right:60px;bottom:10px;height:126px;background:var(--road);border-radius:30px;
+  }
+  .road .inner{
+    position:absolute;left:18px;right:18px;top:18px;bottom:18px;background:#656e7b;border-radius:24px;
+  }
+  .roadMark{
+    position:absolute;top:50%;transform:translateY(-50%);
+    width:56px;height:12px;background:#f0e39f;border-radius:4px;
+  }
+
+  .burger{
+    position:absolute;width:44px;height:40px;pointer-events:none;
+  }
+  .burger .topbun{
+    position:absolute;left:0;right:0;top:0;height:13px;background:#efc24b;border-radius:10px 10px 7px 7px;
+  }
+  .burger .sesame{
+    position:absolute;top:3px;width:3px;height:5px;background:#fff2cb;border-radius:2px;opacity:.9;
+  }
+  .burger .patty{
+    position:absolute;left:5px;right:5px;top:13px;height:9px;background:#6e401f;border-radius:4px;
+  }
+  .burger .lettuce{
+    position:absolute;left:4px;right:4px;top:22px;height:4px;background:#4dbb56;border-radius:4px;
+  }
+  .burger .cheese{
+    position:absolute;left:6px;right:6px;top:25px;height:5px;background:#ffcf4a;border-radius:3px;
+  }
+  .burger .bottombun{
+    position:absolute;left:0;right:0;bottom:0;height:12px;background:#efc24b;border-radius:6px 6px 9px 9px;
+  }
+
+  .customer{
+    position:absolute;width:36px;height:54px;pointer-events:none;
+    transform:translate(-18px,-27px);
+  }
+  .customer .head{
+    position:absolute;left:7px;top:0;width:22px;height:22px;border-radius:50%;
+  }
+  .customer .hair{
+    position:absolute;left:7px;top:-2px;width:22px;height:12px;border-radius:12px 12px 6px 6px;
+  }
+  .customer .neck{
+    position:absolute;left:15px;top:19px;width:6px;height:6px;border-radius:2px;
+  }
+  .customer .body{
+    position:absolute;left:5px;top:22px;width:26px;height:22px;border-radius:8px;
+  }
+  .customer .pants{
+    position:absolute;left:7px;top:39px;width:22px;height:11px;border-radius:5px;
+  }
+  .customer .armL,.customer .armR,.customer .legL,.customer .legR{
+    position:absolute;background:#3b4048;border-radius:4px;
+    transform-origin:top center;
+  }
+  .customer .armL,.customer .armR{width:4px;height:14px;top:28px}
+  .customer .armL{left:2px}.customer .armR{right:2px}
+  .customer .legL,.customer .legR{width:4px;height:16px;top:47px}
+  .customer .legL{left:10px}.customer .legR{right:10px}
+
+  .particle{
+    position:absolute;pointer-events:none;font-weight:900;color:#8cff9d;font-size:18px;
+    text-shadow:0 1px 0 rgba(0,0,0,.15);
+  }
+
+  @media (max-width:1150px){
+    .shopGrid{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="brand"><h1><span class="mc">McBurger</span> Tycoon</h1></div>
+    <div class="money"><small>Kontostand</small><span id="money">$500</span></div>
+  </div>
+
+  <div class="log"><h3>Log</h3><ul id="events"></ul></div>
+
+  <div class="statsBar">
+    <div class="stat"><div class="k">Burger</div><div class="v" id="burgers">0</div></div>
+    <div class="stat"><div class="k">Kunden</div><div class="v" id="customers">0</div></div>
+    <div class="stat"><div class="k">Maschinen</div><div class="v" id="machines">1</div></div>
+    <div class="stat"><div class="k">Level</div><div class="v" id="level">1</div></div>
+  </div>
+
+  <div class="manageBtn"><button id="btnManage">Management</button></div>
+  <div class="helperBadge">Stabil neu gebaut: komplett ohne Canvas</div>
+
+  <div class="drawer" id="drawer">
+    <div class="drawerHeader">
+      <h2>Management</h2>
+      <span>Maschine bis Level 3 verbessern · dann neue Maschine</span>
+    </div>
+    <div class="shopGrid">
+      <div class="shopCard">
+        <div class="shopTop"><div class="icon">⚙️</div><div class="shopTitle"><b>Maschine verbessern</b><span>Mehr Output</span><div class="machineMeter" id="machineMeter"></div></div><div class="price" id="machineUpgradeCost">$180</div></div>
+        <button id="btnMachineUpgrade">Upgrade</button>
+      </div>
+      <div class="shopCard">
+        <div class="shopTop"><div class="icon">🧍</div><div class="shopTitle"><b>Kunden-Boost</b><span>Mehr Besucher</span></div><div class="price" id="custCost">$220</div></div>
+        <button id="btnCust">Kaufen</button>
+      </div>
+      <div class="shopCard">
+        <div class="shopTop"><div class="icon">💳</div><div class="shopTitle"><b>Kasse verbessern</b><span>Schneller verkaufen</span></div><div class="price" id="cashCost">$340</div></div>
+        <button id="btnCash">Upgrade</button>
+      </div>
+      <div class="shopCard">
+        <div class="shopTop"><div class="icon">↺</div><div class="shopTitle"><b>Spiel</b><span>Neu starten</span></div></div>
+        <button class="reset" id="btnReset">Reset</button>
+      </div>
+    </div>
+    <div class="drawerActions"><button id="btnCloseDrawer">Schließen</button></div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="lot"></div>
+
+    <div class="factory">
+      <div class="roof"></div>
+      <div class="sign">FABRIK</div>
+      <div class="window w1"></div><div class="window w2"></div><div class="window w3"></div><div class="window w4"></div>
+      <div class="pipe p1"></div><div class="pipe p2"></div>
+      <div class="floorA"></div><div class="floorB"></div><div class="floorC"></div><div class="tower"></div>
+
+      <div class="machineSlot" style="left:104px;top:196px" id="slot0"></div>
+      <div class="machineSlot" style="left:344px;top:196px" id="slot1"></div>
+      <div class="machineSlot" style="left:584px;top:196px" id="slot2"></div>
+      <div class="machineSlot" style="left:104px;top:376px" id="slot3"></div>
+      <div class="machineSlot" style="left:344px;top:376px" id="slot4"></div>
+      <div class="machineSlot" style="left:584px;top:376px" id="slot5"></div>
+    </div>
+
+    <div class="belt"><div class="inner"><div class="slats"></div></div></div>
+
+    <div class="store">
+      <div class="roof"></div>
+      <div class="sign">McBurger</div>
+      <div class="window w1"></div><div class="window w2"></div><div class="window w3"></div><div class="window w4"></div>
+      <div class="counter" id="counter"><div class="label">KASSE</div></div>
+      <div class="queueLane"></div>
+      <div class="rail r1"></div><div class="rail r2"></div><div class="rail r3"></div>
+      <div class="door"><div class="glass"></div></div>
+    </div>
+
+    <div class="path"></div>
+
+    <div class="parking">
+      <div class="inner"></div>
+      <div class="parkingLine" style="left:90px"></div>
+      <div class="parkingLine" style="left:200px"></div>
+      <div class="parkingLine" style="left:310px"></div>
+      <div class="parkingLine" style="left:420px"></div>
+      <div class="parkingLine" style="left:530px"></div>
+      <div class="parkingLine" style="left:640px"></div>
+      <div class="parkingLine" style="left:750px"></div>
+    </div>
+
+    <div class="road">
+      <div class="inner"></div>
+      <div class="roadMark" style="left:70px"></div>
+      <div class="roadMark" style="left:180px"></div>
+      <div class="roadMark" style="left:290px"></div>
+      <div class="roadMark" style="left:400px"></div>
+      <div class="roadMark" style="left:510px"></div>
+      <div class="roadMark" style="left:620px"></div>
+      <div class="roadMark" style="left:730px"></div>
+      <div class="roadMark" style="left:840px"></div>
+      <div class="roadMark" style="left:950px"></div>
+      <div class="roadMark" style="left:1060px"></div>
+      <div class="roadMark" style="left:1170px"></div>
+      <div class="roadMark" style="left:1280px"></div>
+      <div class="roadMark" style="left:1390px"></div>
+      <div class="roadMark" style="left:1500px"></div>
+      <div class="roadMark" style="left:1610px"></div>
+      <div class="roadMark" style="left:1720px"></div>
+      <div class="roadMark" style="left:1830px"></div>
+      <div class="roadMark" style="left:1940px"></div>
+    </div>
+
+    <div id="carsLayer"></div>
+    <div id="burgersLayer"></div>
+    <div id="customersLayer"></div>
+    <div id="particlesLayer"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const ui = {
+    money:$('money'), burgers:$('burgers'), customers:$('customers'), machines:$('machines'), level:$('level'),
+    events:$('events'), drawer:$('drawer'),
+    btnManage:$('btnManage'), btnCloseDrawer:$('btnCloseDrawer'),
+    machineUpgradeCost:$('machineUpgradeCost'), custCost:$('custCost'), cashCost:$('cashCost'),
+    btnMachineUpgrade:$('btnMachineUpgrade'), btnCust:$('btnCust'), btnCash:$('btnCash'), btnReset:$('btnReset'),
+    machineMeter:$('machineMeter'),
+    carsLayer:$('carsLayer'), burgersLayer:$('burgersLayer'), customersLayer:$('customersLayer'), particlesLayer:$('particlesLayer')
+  };
+
+  const state = {
+    money:500,
+    machineCount:1,
+    machineLevel:1,
+    customerBoost:1,
+    cashierLevel:1,
+    totalCustomers:0,
+    soldCustomers:0,
+    readyBurgers:8,
+    burgers:[],
+    customers:[],
+    particles:[],
+    parkedCars:[],
+    machineTimers:[0.4],
+    customerTimer:0.7
+  };
+
+  const world = {
+    machinePos:[
+      {x:334,y:392},{x:574,y:392},{x:814,y:392},
+      {x:334,y:572},{x:574,y:572},{x:814,y:572}
+    ],
+    beltStart:{x:1085,y:585},
+    beltEnd:{x:1548,y:585},
+    counterArea:{x:1785,y:478},
+    counterSell:{x:1810,y:615},
+    queueStart:{x:1752,y:604},
+    lobby:{x:2100,y:640},
+    door:{x:2200,y:710},
+    outsideDoor:{x:2110,y:800},
+    parkingSpots:[
+      {x:1535,y:1005},{x:1645,y:1024},{x:1755,y:1005},{x:1865,y:1024},
+      {x:1975,y:1005},{x:2085,y:1024},{x:2195,y:1005}
+    ]
+  };
+
+  const fmt = n => '$' + Math.floor(n).toLocaleString('de-DE');
+  const lerp = (a,b,t) => a + (b-a)*t;
+
+  function addEvent(text){
+    state.events = [text, ...(state.events||[])].slice(0,7);
+    ui.events.innerHTML = state.events.map(e => '<li>'+e+'</li>').join('');
+  }
+
+  function getMachineUpgradeCost(){ return Math.floor(180 * Math.pow(1.72, state.machineLevel - 1)); }
+  function getCustCost(){ return Math.floor(220 * Math.pow(1.62, state.customerBoost - 1)); }
+  function getCashCost(){ return Math.floor(340 * Math.pow(1.74, state.cashierLevel - 1)); }
+
+  function renderMachineMeter(){
+    ui.machineMeter.innerHTML = '';
+    for(let i=1;i<=3;i++){
+      const el = document.createElement('i');
+      if(i <= state.machineLevel) el.className = 'on';
+      ui.machineMeter.appendChild(el);
+    }
+  }
+
+  function updateUI(){
+    const level = 1 + Math.floor((state.machineCount-1)*1.2 + (state.machineLevel-1)*0.8 + (state.customerBoost-1)*0.8 + (state.cashierLevel-1)*0.8);
+    ui.money.textContent = fmt(state.money);
+    ui.burgers.textContent = state.readyBurgers + state.burgers.length;
+    ui.customers.textContent = state.soldCustomers;
+    ui.machines.textContent = state.machineCount;
+    ui.level.textContent = level;
+    ui.machineUpgradeCost.textContent = fmt(getMachineUpgradeCost());
+    ui.custCost.textContent = fmt(getCustCost());
+    ui.cashCost.textContent = fmt(getCashCost());
+    ui.btnMachineUpgrade.disabled = state.money < getMachineUpgradeCost();
+    ui.btnCust.disabled = state.money < getCustCost();
+    ui.btnCash.disabled = state.money < getCashCost();
+    renderMachineMeter();
+    renderMachineSlots();
+  }
+
+  function createMachineMarkup(active){
+    if(active){
+      return '<div class="machine"><div class="panel"></div><div class="beltmini"></div></div>';
+    }
+    return 'FREI AB<br>LEVEL 3';
+  }
+
+  function renderMachineSlots(){
+    for(let i=0;i<6;i++){
+      const slot = $('slot'+i);
+      if(i < state.machineCount){
+        slot.className = 'machineSlot';
+        slot.innerHTML = createMachineMarkup(true);
+      } else {
+        slot.className = 'machineSlot locked';
+        slot.innerHTML = createMachineMarkup(false);
+      }
+    }
+  }
+
+  function setupCars(){
+    state.parkedCars = world.parkingSpots.map((p,i)=>({
+      x:p.x,y:p.y,color:['#d8493a','#3aa3ff','#ffd34c','#69d68f','#ff8a60','#c18cff','#7fd7ff'][i%7]
+    }));
+  }
+
+  function createCarEl(color,x,y){
+    const el = document.createElement('div');
+    el.style.position='absolute';
+    el.style.left=(x-34)+'px';
+    el.style.top=(y-12)+'px';
+    el.style.width='68px';
+    el.style.height='24px';
+    el.style.borderRadius='10px';
+    el.style.background=color;
+    el.style.boxShadow='0 10px 14px rgba(0,0,0,.12)';
+    el.innerHTML = '<div style="position:absolute;left:16px;top:2px;width:20px;height:13px;border-radius:4px;background:#edf6ff"></div><div style="position:absolute;right:8px;top:2px;width:18px;height:13px;border-radius:4px;background:#d9e8f2"></div><div style="position:absolute;left:11px;bottom:-1px;width:12px;height:12px;border-radius:50%;background:#282828"></div><div style="position:absolute;right:11px;bottom:-1px;width:12px;height:12px;border-radius:50%;background:#282828"></div>';
+    return el;
+  }
+
+  function createBurgerObj(x,y){
+    const el = document.createElement('div');
+    el.className='burger';
+    el.innerHTML = '<div class="topbun"></div><div class="sesame" style="left:8px"></div><div class="sesame" style="left:14px"></div><div class="sesame" style="left:20px"></div><div class="sesame" style="left:26px"></div><div class="sesame" style="left:32px"></div><div class="patty"></div><div class="lettuce"></div><div class="cheese"></div><div class="bottombun"></div>';
+    ui.burgersLayer.appendChild(el);
+    return {x,y,phase:'toBelt',targetX:world.beltStart.x,targetY:world.beltStart.y,t:0,el};
+  }
+
+  function createCustomerObj(){
+    const look = [
+      {shirt:'#ff7b6d',skin:'#ffd0b6',hair:'#5a3823',pants:'#2e3d54'},
+      {shirt:'#54c8ff',skin:'#f0d6c5',hair:'#6a4728',pants:'#36475b'},
+      {shirt:'#88ea7d',skin:'#d99a73',hair:'#50301d',pants:'#2f3744'},
+      {shirt:'#ffd76b',skin:'#ffd0b6',hair:'#65442b',pants:'#404a5a'}
+    ][Math.floor(Math.random()*4)];
+    const spot = world.parkingSpots[Math.floor(Math.random()*world.parkingSpots.length)];
+    const el = document.createElement('div');
+    el.className='customer';
+    el.innerHTML = '<div class="head"></div><div class="hair"></div><div class="neck"></div><div class="body"></div><div class="pants"></div><div class="armL"></div><div class="armR"></div><div class="legL"></div><div class="legR"></div>';
+    el.querySelector('.head').style.background = look.skin;
+    el.querySelector('.neck').style.background = look.skin;
+    el.querySelector('.hair').style.background = look.hair;
+    el.querySelector('.body').style.background = look.shirt;
+    el.querySelector('.pants').style.background = look.pants;
+    ui.customersLayer.appendChild(el);
+    return {
+      x:spot.x, y:spot.y+30,
+      tx:spot.x, ty:spot.y+30,
+      state:'walkFromCar',
+      wait:0,
+      legPhase:Math.random()*Math.PI*2,
+      el
+    };
+  }
+
+  function createParticle(text,x,y){
+    const el = document.createElement('div');
+    el.className='particle';
+    el.textContent = text;
+    ui.particlesLayer.appendChild(el);
+    return {x,y,vy:-0.9,life:55,el};
+  }
+
+  function resetGame(){
+    state.money=500;
+    state.machineCount=1;
+    state.machineLevel=1;
+    state.customerBoost=1;
+    state.cashierLevel=1;
+    state.totalCustomers=0;
+    state.soldCustomers=0;
+    state.readyBurgers=8;
+    state.burgers.forEach(b=>b.el.remove());
+    state.customers.forEach(c=>c.el.remove());
+    state.particles.forEach(p=>p.el.remove());
+    state.burgers=[];
+    state.customers=[];
+    state.particles=[];
+    state.machineTimers=[0.35];
+    state.customerTimer=0.8;
+    state.events=[];
+    ui.carsLayer.innerHTML='';
+    setupCars();
+    state.parkedCars.forEach(car => ui.carsLayer.appendChild(createCarEl(car.color, car.x, car.y)));
+    addEvent('Stabile DOM-Version geladen.');
+    addEvent('Bewegungen neu aufgebaut.');
+    updateUI();
+  }
+
+  function spawnBurger(machineIndex){
+    const p = world.machinePos[machineIndex];
+    state.burgers.push(createBurgerObj(p.x, p.y));
+  }
+
+  function spawnCustomer(){
+    state.customers.push(createCustomerObj());
+  }
+
+  function sellOne(){
+    if(state.readyBurgers <= 0) return false;
+    const price = 18 + state.cashierLevel*3 + Math.floor(Math.random()*5);
+    state.readyBurgers -= 1;
+    state.money += price;
+    state.soldCustomers += 1;
+    state.particles.push(createParticle('+'+price, 1880, 560));
+    return true;
+  }
+
+  function updateBurgers(dt){
+    let prodDelay = Math.max(0.45, 1.35 - state.machineCount*0.06 - state.machineLevel*0.08);
+    for(let i=0;i<state.machineTimers.length;i++){
+      state.machineTimers[i] -= dt;
+      if(state.machineTimers[i] <= 0){
+        spawnBurger(i);
+        if(state.machineLevel >= 2 && Math.random() < Math.min(0.7, 0.12 + state.machineLevel*0.18)){
+          spawnBurger(i);
+        }
+        state.machineTimers[i] = prodDelay + Math.random()*0.35;
+      }
+    }
+
+    for(const b of state.burgers){
+      if(b.phase === 'toBelt'){
+        b.x = lerp(b.x, b.targetX, 0.09 * dt * 60);
+        b.y = lerp(b.y, b.targetY, 0.09 * dt * 60);
+        if(Math.hypot(b.x-b.targetX, b.y-b.targetY) < 5){
+          b.phase = 'belt';
+          b.t = 0;
+        }
+      } else if(b.phase === 'belt'){
+        b.t += dt * (0.10 + state.machineLevel*0.02);
+        b.x = world.beltStart.x + (world.beltEnd.x - world.beltStart.x) * b.t;
+        b.y = world.beltStart.y + Math.sin(b.t*10)*2;
+        if(b.t >= 1){
+          b.phase = 'counter';
+          b.targetX = 1770 + Math.random()*120;
+          b.targetY = 505 + Math.random()*30;
+        }
+      } else if(b.phase === 'counter'){
+        b.x = lerp(b.x, b.targetX, 0.12 * dt * 60);
+        b.y = lerp(b.y, b.targetY, 0.12 * dt * 60);
+        if(Math.hypot(b.x-b.targetX, b.y-b.targetY) < 6){
+          b.done = true;
+          state.readyBurgers += 1;
+        }
+      }
+      b.el.style.transform = 'translate(' + (b.x-22) + 'px,' + (b.y-20) + 'px)';
+    }
+    state.burgers = state.burgers.filter(b=>{
+      if(b.done){ b.el.remove(); return false; }
+      return true;
+    }).slice(-180);
+  }
+
+  function updateCustomers(dt){
+    state.customerTimer -= dt;
+    const spawnRate = Math.max(0.65, 2.6 - state.customerBoost*0.22);
+    if(state.customerTimer <= 0){
+      state.customerTimer = spawnRate * (0.85 + Math.random()*0.4);
+      spawnCustomer();
+    }
+
+    const queuePeople = state.customers.filter(c => c.state === 'queue');
+    for(const c of state.customers){
+      c.legPhase += dt*8;
+
+      if(c.state === 'walkFromCar'){
+        c.tx = 2110; c.ty = 780;
+        if(Math.hypot(c.x-c.tx, c.y-c.ty) < 10) c.state = 'door';
+      } else if(c.state === 'door'){
+        c.tx = 2200; c.ty = 710;
+        if(Math.hypot(c.x-c.tx, c.y-c.ty) < 8) c.state = 'inside';
+      } else if(c.state === 'inside'){
+        c.tx = 2115; c.ty = 648;
+        if(Math.hypot(c.x-c.tx, c.y-c.ty) < 8) c.state = 'queue';
+      } else if(c.state === 'queue'){
+        const idx = queuePeople.indexOf(c);
+        c.tx = 1760 + (idx % 3)*64;
+        c.ty = 600 + Math.floor(idx/3)*48;
+      } else if(c.state === 'toCounter'){
+        c.tx = 1805; c.ty = 688;
+        if(Math.hypot(c.x-c.tx, c.y-c.ty) < 8) c.state = 'buying';
+      } else if(c.state === 'buying'){
+        c.wait -= dt;
+        if(c.wait <= 0){
+          if(sellOne()) c.state = 'leaveInside';
+          else c.wait = 0.5;
+        }
+      } else if(c.state === 'leaveInside'){
+        c.tx = 2115; c.ty = 648;
+        if(Math.hypot(c.x-c.tx, c.y-c.ty) < 8) c.state = 'leaveDoor';
+      } else if(c.state === 'leaveDoor'){
+        c.tx = 2110; c.ty = 780;
+        if(Math.hypot(c.x-c.tx, c.y-c.ty) < 8) c.state = 'walkToRoad';
+      } else if(c.state === 'walkToRoad'){
+        c.tx = 2270; c.ty = 980;
+        if(Math.hypot(c.x-c.tx, c.y-c.ty) < 12) c.gone = true;
+      }
+
+      c.x = lerp(c.x, c.tx, 0.05 * dt * 60);
+      c.y = lerp(c.y, c.ty, 0.05 * dt * 60);
+
+      const leg = Math.sin(c.legPhase)*18;
+      c.el.style.left = c.x + 'px';
+      c.el.style.top = c.y + 'px';
+      c.el.querySelector('.armL').style.transform = 'rotate(' + (8 + leg*0.5) + 'deg)';
+      c.el.querySelector('.armR').style.transform = 'rotate(' + (-8 - leg*0.5) + 'deg)';
+      c.el.querySelector('.legL').style.transform = 'rotate(' + (-8 - leg*0.6) + 'deg)';
+      c.el.querySelector('.legR').style.transform = 'rotate(' + (8 + leg*0.6) + 'deg)';
+    }
+
+    const front = queuePeople.sort((a,b)=>a.y-b.y)[0];
+    if(front && front.state === 'queue' && Math.hypot(front.x-1760, front.y-600) < 20){
+      front.state = 'toCounter';
+      front.wait = Math.max(0.45, 1.25 - state.cashierLevel*0.13);
+    }
+
+    state.customers = state.customers.filter(c=>{
+      if(c.gone){ c.el.remove(); return false; }
+      return true;
+    }).slice(0,18);
+  }
+
+  function updateParticles(dt){
+    for(const p of state.particles){
+      p.y += p.vy * dt * 60;
+      p.life -= dt * 60;
+      p.el.style.left = p.x + 'px';
+      p.el.style.top = p.y + 'px';
+      p.el.style.opacity = Math.max(0, p.life/55);
+    }
+    state.particles = state.particles.filter(p=>{
+      if(p.life <= 0){ p.el.remove(); return false; }
+      return true;
+    });
+  }
+
+  ui.btnManage.onclick = ()=> ui.drawer.classList.toggle('open');
+  ui.btnCloseDrawer.onclick = ()=> ui.drawer.classList.remove('open');
+
+  ui.btnMachineUpgrade.onclick = ()=>{
+    const c = getMachineUpgradeCost();
+    if(state.money < c) return;
+    state.money -= c;
+    state.machineLevel++;
+    if(state.machineLevel > 3){
+      state.machineLevel = 1;
+      if(state.machineCount < 6){
+        state.machineCount += 1;
+        ensureTimers();
+        addEvent('Neue Maschine freigeschaltet.');
+      } else {
+        state.machineLevel = 3;
+      }
+    } else {
+      addEvent('Maschine verbessert.');
+    }
+    updateUI();
+  };
+  ui.btnCust.onclick = ()=>{
+    const c = getCustCost();
+    if(state.money < c) return;
+    state.money -= c;
+    state.customerBoost += 1;
+    addEvent('Mehr Kunden.');
+    updateUI();
+  };
+  ui.btnCash.onclick = ()=>{
+    const c = getCashCost();
+    if(state.money < c) return;
+    state.money -= c;
+    state.cashierLevel += 1;
+    addEvent('Kasse besser.');
+    updateUI();
+  };
+  ui.btnReset.onclick = resetGame;
+
+
+  function fitScene(){
+    const scene = document.getElementById('scene');
+    const baseW = 1800;
+    const baseH = 980;
+    const padX = 36;
+    const topUi = 170;
+    const bottomUi = 210;
+    const availW = Math.max(700, window.innerWidth - padX);
+    const availH = Math.max(420, window.innerHeight - topUi - bottomUi);
+    const scale = Math.min(availW / baseW, availH / baseH, 1);
+    scene.style.transform = 'translate(-50%,-50%) scale(' + scale.toFixed(3) + ')';
+  }
+
+  resetGame();
+  fitScene();
+  window.addEventListener('resize', fitScene);
+
+  let last = performance.now();
+  function frame(now){
+    const dt = Math.min(0.05, (now-last)/1000);
+    last = now;
+    updateBurgers(dt);
+    updateCustomers(dt);
+    updateParticles(dt);
+    updateUI();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
