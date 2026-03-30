@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>McBurger Tycoon Deluxe 2</title>
+  <style>
+    :root{
+      --sky1:#7dd9ff; --sky2:#eefcff;
+      --grass1:#97e46f; --grass2:#62bc49;
+      --panel:#0f2135ee; --panel2:#192d46f2;
+      --line:#ffffff18; --line2:#ffffff10;
+      --text:#f4fbff; --muted:#a9bbcc;
+      --gold:#ffd54f; --gold2:#ffb72a;
+      --green:#90ffb6; --cream:#efe7da;
+      --red:#d63f31; --red2:#9d241d; --orange:#cf6b49;
+      --steel:#99a8b4; --asphalt:#5e6570;
+      --shadow:0 20px 56px rgba(0,0,0,.22);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;overflow:hidden;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(var(--sky1),var(--sky2));color:var(--text)}
+    canvas{display:block;width:100vw;height:100vh}
+
+    .top{
+      position:fixed; left:14px; right:14px; top:14px;
+      display:flex; justify-content:space-between; align-items:flex-start;
+      gap:14px; pointer-events:none;
+    }
+    .brand,.money,.log,.dock{
+      pointer-events:auto;
+      background:linear-gradient(180deg,var(--panel2),var(--panel));
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(10px);
+    }
+    .brand{
+      border-radius:18px; padding:10px 14px; min-width:230px;
+    }
+    .brand h1{margin:0;font-size:20px;line-height:1.1}
+    .brand .mc{color:var(--gold);font-weight:900}
+    .money{
+      border-radius:999px; min-width:180px; text-align:center;
+      padding:10px 14px; font-size:21px; font-weight:900; color:var(--green);
+    }
+    .money small{
+      display:block; font-size:10px; text-transform:uppercase;
+      letter-spacing:.8px; color:#c2d7c8; margin-bottom:2px;
+    }
+    .log{
+      position:fixed; right:14px; top:88px; width:205px;
+      border-radius:18px; padding:10px 12px;
+    }
+    .log h3{margin:0 0 8px;font-size:13px}
+    .log ul{
+      margin:0; padding-left:16px; max-height:175px; overflow:auto;
+      color:var(--muted); font-size:11px; line-height:1.35;
+    }
+
+    .hudMini{
+      position:fixed; left:14px; top:88px; width:205px;
+      display:grid; grid-template-columns:1fr 1fr; gap:8px;
+    }
+    .stat{
+      background:linear-gradient(180deg,var(--panel2),var(--panel));
+      border:1px solid var(--line); box-shadow:var(--shadow); backdrop-filter:blur(10px);
+      border-radius:16px; padding:10px 11px;
+    }
+    .stat .k{font-size:10px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:5px}
+    .stat .v{font-size:24px; font-weight:900}
+
+    .dock{
+      position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+      width:min(1200px, calc(100vw - 28px));
+      border-radius:24px; padding:12px;
+    }
+    .dockGrid{
+      display:grid; grid-template-columns:repeat(5,1fr); gap:10px;
+    }
+    .buy{
+      background:linear-gradient(180deg,#1a2c45,#111b2a);
+      border:1px solid var(--line2); border-radius:16px;
+      padding:10px;
+      display:grid; gap:8px;
+    }
+    .buyTop{display:flex; align-items:center; gap:8px}
+    .ico{
+      width:38px; height:38px; border-radius:12px;
+      display:grid; place-items:center;
+      background:linear-gradient(180deg,#263b5a,#172537);
+      border:1px solid var(--line2);
+      font-size:19px; flex:none;
+    }
+    .buy b{font-size:12px}
+    .price{
+      margin-left:auto;
+      font-size:11px; font-weight:900; color:#ffd979;
+      background:#0d1723; border:1px solid var(--line2);
+      border-radius:999px; padding:4px 7px;
+    }
+    button{
+      appearance:none; border:none; cursor:pointer;
+      border-radius:10px; padding:8px 10px;
+      font-weight:900; font-size:12px;
+      background:linear-gradient(180deg,var(--gold),var(--gold2));
+      color:#241a04;
+      box-shadow:inset 0 -2px 0 rgba(0,0,0,.15), 0 8px 18px rgba(0,0,0,.16);
+      transition:.14s transform,.14s filter,.14s opacity;
+    }
+    button:hover{transform:translateY(-1px);filter:brightness(1.03)}
+    button:active{transform:translateY(1px)}
+    button:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:none}
+    .reset{
+      background:linear-gradient(180deg,#2a3b54,#192335);
+      color:var(--text);
+      border:1px solid var(--line2);
+      box-shadow:none;
+    }
+    .tip{
+      position:fixed; right:14px; bottom:128px;
+      background:rgba(10,16,25,.72);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      color:var(--muted);
+      border-radius:999px;
+      padding:7px 12px;
+      font-size:11px;
+      backdrop-filter:blur(8px);
+    }
+    @media (max-width: 1100px){
+      .dockGrid{grid-template-columns:repeat(3,1fr)}
+    }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="top">
+  <div class="brand"><h1><span class="mc">McBurger</span> Tycoon</h1></div>
+  <div class="money"><small>Kontostand</small><span id="money">$500</span></div>
+</div>
+
+<div class="hudMini">
+  <div class="stat"><div class="k">Burger</div><div class="v" id="burgers">0</div></div>
+  <div class="stat"><div class="k">Kunden</div><div class="v" id="customers">0</div></div>
+  <div class="stat"><div class="k">Maschinen</div><div class="v" id="machines">2</div></div>
+  <div class="stat"><div class="k">Level</div><div class="v" id="level">1</div></div>
+</div>
+
+<div class="log">
+  <h3>Log</h3>
+  <ul id="events"></ul>
+</div>
+
+<div class="tip">Klick Fabrik = Turbo · Klick Kasse = Sofortverkauf</div>
+
+<div class="dock">
+  <div class="dockGrid">
+    <div class="buy">
+      <div class="buyTop"><div class="ico">⚙️</div><b>Maschine</b><span class="price" id="machineCost">$260</span></div>
+      <button id="btnMachine">Kaufen</button>
+    </div>
+    <div class="buy">
+      <div class="buyTop"><div class="ico">🚀</div><b>Effizienz</b><span class="price" id="effCost">$480</span></div>
+      <button id="btnEff">Upgrade</button>
+    </div>
+    <div class="buy">
+      <div class="buyTop"><div class="ico">🧍</div><b>Kunden</b><span class="price" id="custCost">$220</span></div>
+      <button id="btnCust">Kaufen</button>
+    </div>
+    <div class="buy">
+      <div class="buyTop"><div class="ico">💳</div><b>Kasse</b><span class="price" id="cashCost">$340</span></div>
+      <button id="btnCash">Upgrade</button>
+    </div>
+    <div class="buy">
+      <div class="buyTop"><div class="ico">↺</div><b>Spiel</b></div>
+      <button class="reset" id="btnReset">Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  const ui = {
+    money: document.getElementById('money'),
+    burgers: document.getElementById('burgers'),
+    customers: document.getElementById('customers'),
+    machines: document.getElementById('machines'),
+    level: document.getElementById('level'),
+    machineCost: document.getElementById('machineCost'),
+    effCost: document.getElementById('effCost'),
+    custCost: document.getElementById('custCost'),
+    cashCost: document.getElementById('cashCost'),
+    events: document.getElementById('events'),
+    btnMachine: document.getElementById('btnMachine'),
+    btnEff: document.getElementById('btnEff'),
+    btnCust: document.getElementById('btnCust'),
+    btnCash: document.getElementById('btnCash'),
+    btnReset: document.getElementById('btnReset'),
+  };
+
+  const world = {
+    w: 2200, h: 1200,
+    factory:{x:250,y:250,w:690,h:420},
+    machineSlots:[
+      {x:350,y:400},{x:535,y:400},{x:720,y:400},
+      {x:350,y:530},{x:535,y:530},{x:720,y:530}
+    ],
+    belt:{x1:900,x2:1280,y:465},
+    restaurant:{x:1270,y:220,w:680,h:470},
+    entrance:{x:1780,y:685},
+    queueArea:{x:1480,y:500},
+    road:{x:120,y:870,w:1960,h:140},
+    plaza:{x:1260,y:745,w:780,h:120},
+    factoryHotspot:{x:250,y:250,w:690,h:420},
+    cashHotspot:{x:1400,y:505,w:260,h:105},
+  };
+
+  const state = {
+    money:500, machineCount:2, efficiency:1, customerBoost:1, cashierLevel:1,
+    totalCustomers:0, readyBurgers:10, burgers:[], customers:[], particles:[],
+    machineTimers:[], customerTimer:0, turbo:0, level:1, events:[], time:0,
+    camX:0, camY:0, targetCamX:0, targetCamY:0, zoom:1, targetZoom:1,
+    mouseWorldX:0, mouseWorldY:0, lastSellBurst:0
+  };
+
+  const fmt = n => '$' + Math.floor(n).toLocaleString('de-DE');
+  const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+  const lerp = (a,b,t) => a + (b-a)*t;
+  const pointIn = (x,y,r) => x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h;
+
+  function rr(x,y,w,h,r,fill,stroke){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    if(fill){ctx.fillStyle=fill;ctx.fill();}
+    if(stroke){ctx.strokeStyle=stroke;ctx.stroke();}
+  }
+  function shadow(x,y,rx,ry,a=.16){
+    ctx.save(); ctx.globalAlpha=a; ctx.fillStyle='#000';
+    ctx.beginPath(); ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function addEvent(text){
+    state.events.unshift(text);
+    state.events = state.events.slice(0,7);
+    ui.events.innerHTML = state.events.map(e => `<li>${e}</li>`).join('');
+  }
+
+  const getMachineCost = () => Math.floor(260 * Math.pow(1.58, state.machineCount-1));
+  const getEffCost = () => Math.floor(480 * Math.pow(1.75, state.efficiency-1));
+  const getCustCost = () => Math.floor(220 * Math.pow(1.62, state.customerBoost-1));
+  const getCashCost = () => Math.floor(340 * Math.pow(1.74, state.cashierLevel-1));
+
+  function updateUI(){
+    state.level = 1 + Math.floor((state.machineCount-2)*0.7 + (state.efficiency-1)*1.1 + (state.customerBoost-1)*0.8 + (state.cashierLevel-1)*0.8);
+    ui.money.textContent = fmt(state.money);
+    ui.burgers.textContent = state.readyBurgers + state.burgers.length;
+    ui.customers.textContent = state.totalCustomers;
+    ui.machines.textContent = state.machineCount;
+    ui.level.textContent = state.level;
+    ui.machineCost.textContent = fmt(getMachineCost());
+    ui.effCost.textContent = fmt(getEffCost());
+    ui.custCost.textContent = fmt(getCustCost());
+    ui.cashCost.textContent = fmt(getCashCost());
+    ui.btnMachine.disabled = state.money < getMachineCost() || state.machineCount >= world.machineSlots.length;
+    ui.btnEff.disabled = state.money < getEffCost();
+    ui.btnCust.disabled = state.money < getCustCost();
+    ui.btnCash.disabled = state.money < getCashCost();
+  }
+
+  function burst(x,y,count,color,text=''){
+    for(let i=0;i<count;i++){
+      state.particles.push({
+        x,y,vx:(Math.random()-0.5)*2.8,vy:(Math.random()-0.5)*2.5-0.8,
+        life:34+Math.random()*18,color,text:i===0?text:''
+      });
+    }
+  }
+
+  function ensureTimers(){
+    while(state.machineTimers.length < state.machineCount){
+      state.machineTimers.push(Math.random()*0.5);
+    }
+  }
+
+  function resetGame(){
+    state.money = 500;
+    state.machineCount = 2;
+    state.efficiency = 1;
+    state.customerBoost = 1;
+    state.cashierLevel = 1;
+    state.totalCustomers = 0;
+    state.readyBurgers = 10;
+    state.burgers = [];
+    state.customers = [];
+    state.particles = [];
+    state.customerTimer = 0;
+    state.machineTimers = Array.from({length:state.machineCount}, (_,i)=>0.2 + i*0.18 + Math.random()*0.2);
+    state.turbo = 0;
+    state.events = [];
+    addEvent('Neue Version geladen.');
+    addEvent('Kunden laufen rein und raus.');
+    updateUI();
+  }
+
+  function spawnBurger(machineIndex){
+    const slot = world.machineSlots[machineIndex];
+    state.burgers.push({
+      x:slot.x+25,y:slot.y+8,phase:'toBelt',targetX:world.belt.x1,targetY:world.belt.y,t:0
+    });
+    burst(slot.x,slot.y,3,'#ffd26b');
+  }
+
+  function createCustomer(){
+    const palette = [
+      ['#ff6f73','#ffd1b7'],['#4fc7ff','#f0d7c6'],['#84ec7f','#d89972'],
+      ['#ffd66b','#ffd1b7'],['#c39bff','#f0d7c6'],['#ff9fcb','#8c5b3d']
+    ][Math.floor(Math.random()*6)];
+    return {
+      x:world.entrance.x + Math.random()*20,
+      y:world.entrance.y + Math.random()*20,
+      tx:0, ty:0,
+      body:palette[0], skin:palette[1],
+      state:'entering', wait:0, gone:false
+    };
+  }
+
+  function spawnCustomer(){
+    state.customers.push(createCustomer());
+  }
+
+  function sellOne(manual=false){
+    if(state.readyBurgers <= 0) return false;
+    const price = 16 + state.cashierLevel*3 + Math.floor(Math.random()*4);
+    state.readyBurgers--;
+    state.money += price;
+    state.totalCustomers++;
+    state.lastSellBurst = 0.2;
+    burst(world.restaurant.x + 250, world.restaurant.y + 310, 7, '#8cff9d', '+' + price);
+    if(manual) addEvent('Sofortverkauf.');
+    return true;
+  }
+
+  function update(dt){
+    state.time += dt;
+    state.turbo = Math.max(0, state.turbo - dt);
+    state.lastSellBurst = Math.max(0, state.lastSellBurst - dt);
+    state.camX = lerp(state.camX, state.targetCamX, 0.05);
+    state.camY = lerp(state.camY, state.targetCamY, 0.05);
+    state.zoom = lerp(state.zoom, state.targetZoom, 0.08);
+
+    ensureTimers();
+
+    let prodDelay = Math.max(0.34, 1.05 - state.machineCount*0.03 - state.efficiency*0.04);
+    if(state.turbo > 0) prodDelay *= 0.42;
+
+    for(let i=0;i<state.machineTimers.length;i++){
+      state.machineTimers[i] -= dt;
+      if(state.machineTimers[i] <= 0){
+        spawnBurger(i);
+        if(state.efficiency >= 2 && Math.random() < Math.min(0.8, 0.16 + state.efficiency * 0.11)) spawnBurger(i);
+        state.machineTimers[i] = prodDelay + Math.random()*0.22;
+      }
+    }
+
+    for(const b of state.burgers){
+      if(b.phase === 'toBelt'){
+        b.x = lerp(b.x, b.targetX, 0.1 * dt * 60);
+        b.y = lerp(b.y, b.targetY, 0.1 * dt * 60);
+        if(Math.hypot(b.x-b.targetX, b.y-b.targetY) < 5){
+          b.phase='belt'; b.t=0;
+        }
+      } else if(b.phase === 'belt'){
+        b.t += dt * (0.16 + state.efficiency*0.015 + (state.turbo>0 ? 0.12 : 0));
+        b.x = lerp(world.belt.x1, world.belt.x2, b.t);
+        b.y = world.belt.y + Math.sin(b.t*14)*2;
+        if(b.t >= 1){
+          b.phase='counter';
+          b.targetX = world.restaurant.x + 220 + Math.random()*120;
+          b.targetY = world.restaurant.y + 295 + Math.random()*20;
+        }
+      } else if(b.phase === 'counter'){
+        b.x = lerp(b.x, b.targetX, 0.14 * dt * 60);
+        b.y = lerp(b.y, b.targetY, 0.14 * dt * 60);
+        if(Math.hypot(b.x-b.targetX, b.y-b.targetY) < 6){
+          b.done = true; state.readyBurgers++;
+        }
+      }
+    }
+    state.burgers = state.burgers.filter(b => !b.done).slice(-140);
+
+    state.customerTimer -= dt;
+    const rate = Math.max(0.28, 1.85 - state.customerBoost*0.22);
+    if(state.customerTimer <= 0){
+      state.customerTimer = rate * (0.75 + Math.random()*0.45);
+      spawnCustomer();
+    }
+
+    // Update customers with clear flow: enter -> queue -> buy -> leave
+    const queueCustomers = state.customers.filter(c => c.state !== 'leaving');
+    for(let i=0;i<queueCustomers.length;i++){
+      const c = queueCustomers[i];
+      if(c.state === 'entering'){
+        c.tx = world.restaurant.x + 520;
+        c.ty = world.restaurant.y + 565;
+        if(Math.hypot(c.x-c.tx,c.y-c.ty) < 12) c.state = 'inside';
+      } else if(c.state === 'inside'){
+        c.tx = world.restaurant.x + 470;
+        c.ty = world.restaurant.y + 465;
+        if(Math.hypot(c.x-c.tx,c.y-c.ty) < 10) c.state = 'queue';
+      } else if(c.state === 'queue'){
+        c.tx = world.queueArea.x + (i % 3) * 52;
+        c.ty = world.queueArea.y + Math.floor(i / 3) * 36;
+      }
+      c.x = lerp(c.x, c.tx, 0.055 * dt * 60);
+      c.y = lerp(c.y, c.ty, 0.055 * dt * 60);
+    }
+
+    const front = state.customers.find(c => c.state === 'queue');
+    if(front){
+      front.wait -= dt;
+      if(front.wait <= 0){
+        front.wait = Math.max(0.2, 0.92 - state.cashierLevel*0.12);
+        if(sellOne(false)){
+          front.state = 'leaving';
+          front.tx = world.restaurant.x + 520;
+          front.ty = world.restaurant.y + 565;
+        }
+      }
+    }
+
+    for(const c of state.customers){
+      if(c.state === 'leaving'){
+        if(Math.hypot(c.x-(world.restaurant.x + 520), c.y-(world.restaurant.y + 565)) > 14){
+          c.tx = world.restaurant.x + 520;
+          c.ty = world.restaurant.y + 565;
+        } else {
+          c.tx = world.entrance.x + 10;
+          c.ty = world.entrance.y + 10;
+        }
+        c.x = lerp(c.x, c.tx, 0.06 * dt * 60);
+        c.y = lerp(c.y, c.ty, 0.06 * dt * 60);
+        if(Math.hypot(c.x-(world.entrance.x+10), c.y-(world.entrance.y+10)) < 8) c.gone = true;
+      }
+    }
+    state.customers = state.customers.filter(c => !c.gone).slice(0,22);
+
+    for(const p of state.particles){
+      p.x += p.vx * dt * 60;
+      p.y += p.vy * dt * 60;
+      p.vy += 0.02 * dt * 60;
+      p.life -= dt * 60;
+    }
+    state.particles = state.particles.filter(p => p.life > 0);
+
+    updateUI();
+  }
+
+  function drawBurger(x,y,s=1){
+    ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+    rr(-19,-13,38,11,5,'#efc24b');
+    rr(-15,-1,30,8,3,'#6e401f');
+    rr(-16,7,32,3,1,'#55b85d');
+    rr(-19,12,38,11,5,'#efc24b');
+    ctx.restore();
+  }
+
+  function drawPerson(c){
+    shadow(c.x, c.y+18, 14, 5, .14);
+    // legs
+    ctx.strokeStyle = '#3a414b';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(c.x-4,c.y+20); ctx.lineTo(c.x-7,c.y+30); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(c.x+4,c.y+20); ctx.lineTo(c.x+7,c.y+30); ctx.stroke();
+    // torso
+    rr(c.x-10,c.y-2,20,24,8,c.body);
+    // arms
+    ctx.beginPath(); ctx.moveTo(c.x-10,c.y+5); ctx.lineTo(c.x-16,c.y+13); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(c.x+10,c.y+5); ctx.lineTo(c.x+16,c.y+13); ctx.stroke();
+    // neck
+    rr(c.x-3,c.y-8,6,8,2,c.skin);
+    // head
+    ctx.fillStyle = c.skin;
+    ctx.beginPath(); ctx.arc(c.x, c.y-14, 10, 0, Math.PI*2); ctx.fill();
+    // simple hair
+    ctx.fillStyle = '#6a4a2b';
+    ctx.beginPath(); ctx.arc(c.x, c.y-16, 10, Math.PI, 0); ctx.fill();
+  }
+
+  function drawGround(){
+    const g = ctx.createLinearGradient(0,0,0,world.h);
+    g.addColorStop(0,'#95e06f'); g.addColorStop(1,'#61bc48');
+    ctx.fillStyle = g; ctx.fillRect(0,0,world.w,world.h);
+    for(let y=0;y<world.h;y+=52){
+      ctx.fillStyle = y%104===0 ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.03)';
+      ctx.fillRect(0,y,world.w,24);
+    }
+    rr(110,180,1820,530,28,'#d0d8de');
+    rr(125,195,1790,500,24,'#9be176');
+  }
+
+  function drawRoad(){
+    const r = world.road;
+    shadow(r.x+r.w/2, r.y+r.h+8, 420, 18, .12);
+    rr(r.x,r.y,r.w,r.h,30,'#59616a');
+    for(let x=r.x+55; x<r.x+r.w-60; x+=90){
+      ctx.fillStyle = '#f0e3a0';
+      ctx.fillRect(x, r.y + r.h/2 - 5, 44, 10);
+    }
+  }
+
+  function drawTrees(){
+    const pts = [[120,120],[210,92],[1830,110],[1900,240],[135,1080],[1820,1040],[1520,1025],[1040,1035]];
+    for(const [x,y] of pts){
+      shadow(x,y+28,30,9,.17);
+      rr(x-6,y+12,12,26,4,'#7e512e');
+      ctx.fillStyle='#2d9342'; ctx.beginPath(); ctx.arc(x,y,31,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#41b55d'; ctx.beginPath(); ctx.arc(x-15,y-8,18,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x+15,y-6,17,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  function drawFactory(){
+    const f = world.factory;
+    shadow(f.x+f.w/2, f.y+f.h+20, 260, 22, .16);
+    rr(f.x,f.y,f.w,f.h,30,'#dce4ea');
+    rr(f.x+20,f.y+20,f.w-40,106,24,'#cb3126');
+    rr(f.x+180,f.y+48,250,38,18,'#f5ca43');
+    ctx.fillStyle='#8f241d'; ctx.font='900 30px Arial';
+    ctx.fillText('FABRIK', f.x+250, f.y+76);
+
+    for(let i=0;i<4;i++) rr(f.x+40+i*128, f.y+38, 78, 54, 12, '#d5f3ff');
+    rr(f.x+28,f.y+160,f.w-56,30,12,'#bdc7cf');
+    rr(f.x+28,f.y+208,470,140,20,'#a8b7c4');
+    rr(f.x+28,f.y+365,470,118,20,'#9fb0bc');
+    rr(f.x+530,f.y+208,120,275,20,'#91a4b2');
+
+    for(let i=0;i<2;i++){
+      const sx = f.x + 550 + i*52;
+      rr(sx, f.y-28, 30, 82, 10, '#90a4b4');
+      rr(sx+3, f.y-34, 24, 10, 5, '#b8c7d1');
+    }
+
+    for(let i=0;i<world.machineSlots.length;i++){
+      const slot = world.machineSlots[i];
+      if(i < state.machineCount){
+        drawMachine(slot.x-48, slot.y-28, i);
+      } else {
+        shadow(slot.x,slot.y+20,38,9,.1);
+        rr(slot.x-52, slot.y-34, 104, 70, 16, 'rgba(255,255,255,.14)');
+        ctx.setLineDash([10,7]); ctx.lineWidth = 4;
+        rr(slot.x-52, slot.y-34, 104, 70, 16, null, 'rgba(255,255,255,.48)');
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255,255,255,.85)';
+        ctx.font = '900 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('NÄCHSTE', slot.x, slot.y-2);
+        ctx.fillText('MASCHINE', slot.x, slot.y+16);
+      }
+    }
+
+    if(state.turbo > 0) rr(f.x-5,f.y-5,f.w+10,f.h+10,32,null,'rgba(125,255,173,.95)');
+  }
+
+  function drawMachine(x,y,i){
+    shadow(x+48,y+62,34,8,.11);
+    rr(x,y,96,60,14,'#f0c242');
+    rr(x+10,y+8,28,18,6,'#7c572a');
+    rr(x+46,y+9,38,22,7,'#eef4fb');
+    rr(x+16,y+40,62,9,4,'#8597a6');
+    ctx.fillStyle = Math.sin(state.time*4+i) > 0 ? '#6fff98' : '#ff6565';
+    ctx.beginPath(); ctx.arc(x+82,y+14,5,0,Math.PI*2); ctx.fill();
+  }
+
+  function drawBelt(){
+    const y = world.belt.y, x1 = world.belt.x1, x2 = world.belt.x2, w = x2-x1;
+    shadow(x1+w/2,y+20,200,12,.14);
+    rr(x1-32,y-20,w+64,40,18,'#8e9ba7');
+    rr(x1-22,y-12,w+44,24,12,'#313840');
+    for(let x=x1-5;x<x2+8;x+=32){
+      ctx.fillStyle='#5d6670';
+      ctx.fillRect(x,y-10,16,20);
+    }
+  }
+
+  function drawRestaurant(){
+    const r = world.restaurant;
+    shadow(r.x+r.w/2, r.y+r.h+18, 250, 22, .16);
+    rr(r.x,r.y,r.w,r.h,30,'#f0e8db');
+    rr(r.x+18,r.y+18,r.w-36,110,24,'#ce3327');
+    rr(r.x+170,r.y+50,290,40,18,'#f7cc43');
+    ctx.fillStyle='#93251d'; ctx.font='900 40px Arial';
+    ctx.fillText('McBurger', r.x+205, r.y+82);
+
+    for(let i=0;i<4;i++) rr(r.x+42+i*130, r.y+155, 90, 104, 14, '#b8e8ff');
+
+    rr(r.x+120, r.y+280, 320, 110, 20, '#cf694a');
+    rr(r.x+145, r.y+302, 270, 20, 8, '#e48a6d');
+    rr(r.x+160, r.y+340, 240, 22, 8, '#b85439');
+    ctx.fillStyle='#fff4d0'; ctx.font='900 26px Arial';
+    ctx.fillText('KASSE', r.x+220, r.y+372);
+
+    rr(r.x+145, r.y+430, 320, 90, 18, '#8e9ba6');
+    rr(r.x+500, r.y+280, 120, 120, 18, '#f8f3ea');
+
+    // Door / entrance path
+    rr(r.x+532, r.y+470, 70, 100, 14, '#a56d4a');
+    rr(r.x+540, r.y+478, 54, 74, 12, '#bde6ff');
+    rr(r.x+555, r.y+676, 100, 20, 10, '#909da8');
+
+    if(state.lastSellBurst > 0){
+      ctx.save();
+      ctx.globalAlpha = state.lastSellBurst * 2.7;
+      rr(r.x+110, r.y+270, 340, 130, 22, 'rgba(255,220,120,.42)');
+      ctx.restore();
+    }
+
+    drawBurger(r.x+95, r.y+78, 1.28);
+  }
+
+  function drawQueueRails(){
+    const sx = world.queueArea.x - 10, sy = world.queueArea.y - 18;
+    ctx.strokeStyle='#8a97a2'; ctx.lineWidth = 7;
+    for(let i=0;i<3;i++){
+      ctx.beginPath();
+      ctx.moveTo(sx + i*52, sy);
+      ctx.lineTo(sx + i*52, sy + 92);
+      ctx.stroke();
+    }
+  }
+
+  function drawPlaza(){
+    const p = world.plaza;
+    rr(p.x,p.y,p.w,p.h,20,'#d8dfe5');
+    rr(p.x+14,p.y+14,p.w-28,p.h-28,16,'#bac3cb');
+  }
+
+  function drawCars(){
+    const cars = [[320,945,'#da3f31'],[510,945,'#39a8ff'],[1420,948,'#ffd44f'],[1610,948,'#67d78f']];
+    for(const [x,y,c] of cars){
+      shadow(x,y+16,30,8,.15);
+      rr(x-28,y-11,56,22,8,c);
+      rr(x-15,y-8,18,12,4,'#edf6ff');
+      rr(x+7,y-8,15,12,4,'#dbe8f1');
+      ctx.fillStyle='#282828';
+      ctx.beginPath(); ctx.arc(x-14,y+12,6,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x+14,y+12,6,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  function drawCustomers(){
+    for(const c of state.customers) drawPerson(c);
+  }
+
+  function drawParticles(){
+    ctx.save(); ctx.textAlign='center';
+    for(const p of state.particles){
+      ctx.globalAlpha = clamp(p.life/40,0,1);
+      if(p.text){
+        ctx.fillStyle=p.color;
+        ctx.font='bold 18px Arial';
+        ctx.fillText(p.text,p.x,p.y);
+      } else {
+        ctx.fillStyle=p.color;
+        ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,Math.PI*2); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawBurgers(){
+    for(const b of state.burgers) drawBurger(b.x,b.y,0.82);
+    const count = Math.min(12, state.readyBurgers);
+    for(let i=0;i<count;i++){
+      const x = world.restaurant.x + 190 + (i%6)*42;
+      const y = world.restaurant.y + 260 - Math.floor(i/6)*18;
+      drawBurger(x,y,0.74);
+    }
+  }
+
+  function setWorldTransform(){
+    ctx.translate(innerWidth/2 + state.camX + 20, innerHeight/2 + state.camY + 10);
+    ctx.scale(state.zoom, state.zoom);
+    ctx.translate(-world.w/2, -world.h/2);
+  }
+
+  function drawScene(){
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    const sky = ctx.createLinearGradient(0,0,0,innerHeight);
+    sky.addColorStop(0,'#79d6ff'); sky.addColorStop(1,'#effcff');
+    ctx.fillStyle=sky; ctx.fillRect(0,0,innerWidth,innerHeight);
+
+    ctx.save();
+    setWorldTransform();
+    drawGround();
+    drawTrees();
+    drawRoad();
+    drawFactory();
+    drawBelt();
+    drawRestaurant();
+    drawQueueRails();
+    drawPlaza();
+    drawCars();
+    drawBurgers();
+    drawCustomers();
+    drawParticles();
+
+    if(pointIn(state.mouseWorldX,state.mouseWorldY,world.factoryHotspot)){
+      rr(world.factory.x-5,world.factory.y-5,world.factory.w+10,world.factory.h+10,32,null,'rgba(255,255,255,.55)');
+    } else if(pointIn(state.mouseWorldX,state.mouseWorldY,world.cashHotspot)){
+      rr(world.cashHotspot.x-3,world.cashHotspot.y-3,world.cashHotspot.w+6,world.cashHotspot.h+6,18,null,'rgba(255,255,255,.55)');
+    }
+    ctx.restore();
+  }
+
+  function screenToWorld(clientX, clientY){
+    const sx = clientX - innerWidth/2 - state.camX - 20;
+    const sy = clientY - innerHeight/2 - state.camY - 10;
+    return {x: sx / state.zoom + world.w/2, y: sy / state.zoom + world.h/2};
+  }
+
+  function resize(){
+    canvas.width = innerWidth * devicePixelRatio;
+    canvas.height = innerHeight * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  }
+
+  canvas.addEventListener('mousemove', (e) => {
+    state.targetCamX = (e.clientX / innerWidth - 0.5) * 60;
+    state.targetCamY = (e.clientY / innerHeight - 0.5) * 34;
+    const p = screenToWorld(e.clientX, e.clientY);
+    state.mouseWorldX = p.x; state.mouseWorldY = p.y;
+    canvas.style.cursor = pointIn(p.x,p.y,world.factoryHotspot) || pointIn(p.x,p.y,world.cashHotspot) ? 'pointer' : 'default';
+  });
+
+  canvas.addEventListener('click', (e) => {
+    const p = screenToWorld(e.clientX, e.clientY);
+    if(pointIn(p.x,p.y,world.factoryHotspot)){
+      state.turbo = 5;
+      burst(p.x,p.y,14,'#7dffaf');
+      addEvent('Turbo an.');
+    } else if(pointIn(p.x,p.y,world.cashHotspot)){
+      if(sellOne(true)) burst(p.x,p.y,10,'#ffe38a');
+    }
+  });
+
+  window.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    state.targetZoom = clamp(state.targetZoom + (e.deltaY > 0 ? -0.05 : 0.05), 0.9, 1.08);
+  }, {passive:false});
+
+  ui.btnMachine.onclick = () => {
+    const c = getMachineCost();
+    if(state.money < c || state.machineCount >= world.machineSlots.length) return;
+    state.money -= c;
+    const slot = world.machineSlots[state.machineCount];
+    state.machineCount++;
+    ensureTimers();
+    burst(slot.x,slot.y,12,'#ffd36a');
+    addEvent('Maschine gekauft.');
+    updateUI();
+  };
+  ui.btnEff.onclick = () => {
+    const c = getEffCost();
+    if(state.money < c) return;
+    state.money -= c;
+    state.efficiency++;
+    burst(world.factory.x+500,world.factory.y+180,12,'#7ce1ff');
+    addEvent('Effizienz erhöht.');
+    updateUI();
+  };
+  ui.btnCust.onclick = () => {
+    const c = getCustCost();
+    if(state.money < c) return;
+    state.money -= c;
+    state.customerBoost++;
+    burst(world.restaurant.x+560,world.restaurant.y+520,12,'#9affad');
+    addEvent('Mehr Kunden.');
+    updateUI();
+  };
+  ui.btnCash.onclick = () => {
+    const c = getCashCost();
+    if(state.money < c) return;
+    state.money -= c;
+    state.cashierLevel++;
+    burst(world.restaurant.x+260,world.restaurant.y+330,10,'#fff1a8');
+    addEvent('Kasse besser.');
+    updateUI();
+  };
+  ui.btnReset.onclick = resetGame;
+
+  resize();
+  resetGame();
+
+  let last = performance.now();
+  function frame(now){
+    const dt = Math.min(0.05, (now-last)/1000);
+    last = now;
+    update(dt);
+    drawScene();
+    requestAnimationFrame(frame);
+  }
+  window.addEventListener('resize', resize);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
