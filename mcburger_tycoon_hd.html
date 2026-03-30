@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>McBurger Tycoon HD</title>
+<style>
+:root{
+  --sky1:#9be7ff;
+  --sky2:#f7feff;
+  --grass1:#a5ec7e;
+  --grass2:#66c24e;
+  --red:#d93327;
+  --red2:#b81f18;
+  --yellow:#ffd84f;
+  --yellow2:#ffb92c;
+  --cream:#fff6e4;
+  --cream2:#ffe8ba;
+  --cream3:#fffaf2;
+  --brown:#7e4b22;
+  --brown2:#a86735;
+  --green:#2eae5f;
+  --dark:#473120;
+  --road:#5b6370;
+  --road2:#707887;
+  --steel:#97a8b5;
+  --steel2:#cfd8e0;
+  --glass:#bfe8ff;
+  --shadow:0 18px 50px rgba(125,77,37,.18);
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  height:100%;
+  overflow:hidden;
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+  background:linear-gradient(var(--sky1),var(--sky2));
+  color:#5c2a16;
+}
+canvas{display:block;width:100vw;height:100vh}
+
+.topbar{
+  position:fixed;
+  inset:14px 14px auto 14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  pointer-events:none;
+  z-index:20;
+}
+.brand,.money,.log,.statsBar,.manageBtn,.drawer{
+  pointer-events:auto;
+  box-shadow:var(--shadow);
+}
+.brand{
+  background:linear-gradient(180deg,var(--red),var(--red2));
+  border:4px solid var(--yellow);
+  color:#fff9ef;
+  border-radius:24px;
+  padding:10px 16px;
+}
+.brand h1{margin:0;font-size:24px;line-height:1.05}
+.brand .mc{color:var(--yellow);font-weight:900}
+
+.money{
+  min-width:210px;
+  text-align:center;
+  background:linear-gradient(180deg,var(--cream3),var(--cream2));
+  border:4px solid var(--red);
+  border-radius:999px;
+  padding:10px 16px;
+  font-size:28px;
+  font-weight:900;
+  color:#179c4d;
+}
+.money small{
+  display:block;
+  font-size:10px;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  color:#a0612e;
+  margin-bottom:2px;
+}
+
+.log{
+  position:fixed;
+  right:14px;
+  top:92px;
+  width:235px;
+  background:linear-gradient(180deg,var(--cream3),var(--cream2));
+  border:4px solid var(--red);
+  border-radius:22px;
+  padding:10px 12px;
+  z-index:20;
+}
+.log h3{margin:0 0 8px;font-size:14px;color:#932c17}
+.log ul{
+  margin:0;
+  padding-left:16px;
+  max-height:170px;
+  overflow:auto;
+  color:#966433;
+  font-size:11px;
+  line-height:1.4;
+}
+
+.statsBar{
+  position:fixed;
+  left:50%;
+  bottom:14px;
+  transform:translateX(-50%);
+  width:min(820px, calc(100vw - 28px));
+  background:linear-gradient(180deg,var(--cream3),var(--cream2));
+  border:4px solid var(--red);
+  border-radius:28px;
+  padding:10px;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+  z-index:21;
+}
+.stat{
+  background:linear-gradient(180deg,#fffdf8,#fff0c8);
+  border:3px solid var(--yellow);
+  border-radius:17px;
+  padding:10px 12px;
+}
+.stat .k{
+  color:#af711d;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+.stat .v{
+  font-size:28px;
+  font-weight:900;
+  color:#7b2d14;
+}
+
+.manageBtn{
+  position:fixed;
+  right:14px;
+  bottom:14px;
+  z-index:22;
+}
+.manageBtn button{
+  width:180px;
+  border-radius:20px;
+  padding:12px 14px;
+  font-size:15px;
+}
+
+.drawer{
+  position:fixed;
+  left:50%;
+  bottom:112px;
+  transform:translateX(-50%);
+  width:min(1220px, calc(100vw - 28px));
+  background:linear-gradient(180deg,var(--red),var(--red2));
+  border:4px solid var(--yellow);
+  border-radius:30px;
+  padding:12px;
+  z-index:22;
+  display:none;
+}
+.drawer.open{display:block}
+.drawerHeader{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  color:#fffaf0;
+  padding:0 6px;
+  margin-bottom:10px;
+}
+.drawerHeader h2{margin:0;font-size:19px}
+.drawerHeader span{font-size:12px;color:#ffe7a6}
+.shopGrid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+.shopCard{
+  background:linear-gradient(180deg,var(--cream3),var(--cream2));
+  border:3px solid var(--yellow);
+  border-radius:22px;
+  padding:12px;
+  display:grid;
+  gap:10px;
+}
+.shopTop{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.icon{
+  width:50px;
+  height:50px;
+  border-radius:16px;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(180deg,var(--yellow),var(--yellow2));
+  border:3px solid var(--red);
+  font-size:22px;
+  flex:none;
+}
+.shopTitle{
+  flex:1;
+  min-width:0;
+}
+.shopTitle b{
+  display:block;
+  font-size:14px;
+  color:#922d17;
+}
+.shopTitle span{
+  display:block;
+  font-size:10px;
+  color:#af711d;
+  font-weight:700;
+}
+.price{
+  background:#fff8ea;
+  border:2px solid var(--red);
+  border-radius:999px;
+  padding:5px 9px;
+  font-size:11px;
+  font-weight:900;
+  color:#952f18;
+}
+.machineMeter{
+  display:flex;
+  gap:4px;
+  margin-top:5px;
+}
+.machineMeter i{
+  display:block;
+  flex:1;
+  height:8px;
+  border-radius:999px;
+  background:#efd7ab;
+  border:1px solid #d5b46e;
+}
+.machineMeter i.on{
+  background:linear-gradient(180deg,#ffdb55,#ffb929);
+}
+button{
+  appearance:none;
+  border:none;
+  cursor:pointer;
+  border-radius:14px;
+  padding:11px 12px;
+  font-weight:900;
+  font-size:13px;
+  background:linear-gradient(180deg,var(--yellow),var(--yellow2));
+  border:2px solid #9f3c16;
+  color:#672010;
+  box-shadow:inset 0 -3px 0 rgba(140,54,18,.18), 0 5px 10px rgba(0,0,0,.08);
+}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.reset{
+  background:linear-gradient(180deg,#ff7a4f,var(--red));
+  color:#fff9ef;
+  border-color:#8f2416;
+}
+.drawerActions{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:10px;
+}
+
+.helperBadge{
+  position:fixed;
+  right:14px;
+  bottom:78px;
+  background:linear-gradient(180deg,var(--cream3),var(--cream2));
+  border:3px solid var(--red);
+  border-radius:999px;
+  padding:7px 12px;
+  font-size:11px;
+  color:#9e5d27;
+  font-weight:800;
+  z-index:20;
+}
+
+@media (max-width:1150px){
+  .shopGrid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="topbar">
+  <div class="brand"><h1><span class="mc">McBurger</span> Tycoon</h1></div>
+  <div class="money"><small>Kontostand</small><span id="money">$500</span></div>
+</div>
+
+<div class="log">
+  <h3>Log</h3>
+  <ul id="events"></ul>
+</div>
+
+<div class="statsBar">
+  <div class="stat"><div class="k">Burger</div><div class="v" id="burgers">0</div></div>
+  <div class="stat"><div class="k">Kunden</div><div class="v" id="customers">0</div></div>
+  <div class="stat"><div class="k">Maschinen</div><div class="v" id="machines">1</div></div>
+  <div class="stat"><div class="k">Level</div><div class="v" id="level">1</div></div>
+</div>
+
+<div class="manageBtn"><button id="btnManage">Management</button></div>
+
+<div class="helperBadge">Kunden laufen automatisch vom Parkplatz in den Laden</div>
+
+<div class="drawer" id="drawer">
+  <div class="drawerHeader">
+    <h2>Management</h2>
+    <span>Maschine bis Level 3 verbessern · dann wird eine neue Maschine freigeschaltet</span>
+  </div>
+  <div class="shopGrid">
+    <div class="shopCard">
+      <div class="shopTop">
+        <div class="icon">⚙️</div>
+        <div class="shopTitle">
+          <b>Maschine verbessern</b>
+          <span>Mehr Output / Effizienz</span>
+          <div class="machineMeter" id="machineMeter"></div>
+        </div>
+        <div class="price" id="machineUpgradeCost">$180</div>
+      </div>
+      <button id="btnMachineUpgrade">Upgrade</button>
+    </div>
+    <div class="shopCard">
+      <div class="shopTop">
+        <div class="icon">🧍</div>
+        <div class="shopTitle">
+          <b>Kunden-Boost</b>
+          <span>Mehr Besucher</span>
+        </div>
+        <div class="price" id="custCost">$220</div>
+      </div>
+      <button id="btnCust">Kaufen</button>
+    </div>
+    <div class="shopCard">
+      <div class="shopTop">
+        <div class="icon">💳</div>
+        <div class="shopTitle">
+          <b>Kasse verbessern</b>
+          <span>Schneller verkaufen</span>
+        </div>
+        <div class="price" id="cashCost">$340</div>
+      </div>
+      <button id="btnCash">Upgrade</button>
+    </div>
+    <div class="shopCard">
+      <div class="shopTop">
+        <div class="icon">↺</div>
+        <div class="shopTitle">
+          <b>Spiel</b>
+          <span>Neu starten</span>
+        </div>
+      </div>
+      <button class="reset" id="btnReset">Reset</button>
+    </div>
+  </div>
+  <div class="drawerActions"><button id="btnCloseDrawer">Schließen</button></div>
+</div>
+
+<script>
+(()=>{
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+
+const ui={
+  money:money, burgers:burgers, customers:customers, machines:machines, level:level,
+  events:events, btnManage:btnManage, drawer:drawer, btnCloseDrawer:btnCloseDrawer,
+  machineUpgradeCost:machineUpgradeCost, custCost:custCost, cashCost:cashCost,
+  btnMachineUpgrade:btnMachineUpgrade, btnCust:btnCust, btnCash:btnCash, btnReset:btnReset,
+  machineMeter:machineMeter
+};
+
+const world={
+  w:2600, h:1400,
+  factory:{x:230,y:220,w:900,h:560},
+  machineSlots:[
+    {x:390,y:450},{x:630,y:450},{x:870,y:450},
+    {x:390,y:630},{x:630,y:630},{x:870,y:630}
+  ],
+  belt:{x1:1080,x2:1560,y:585},
+  restaurant:{x:1510,y:180,w:880,h:620},
+  parking:{x:1400,y:860,w:1050,h:260},
+  entryRoad:{x:120,y:1030,w:2360,h:170},
+  entryDoor:{x:2200,y:710},
+  lobby:{x:2120,y:650},
+  queueArea:{x:1760,y:600},
+  counter:{x:1670,y:535,w:360,h:130},
+};
+
+const state={
+  money:500,
+  machineCount:1,
+  machineLevel:1,
+  customerBoost:1,
+  cashierLevel:1,
+  totalCustomers:0,
+  readyBurgers:8,
+  burgers:[],
+  customers:[],
+  particles:[],
+  parkedCars:[],
+  machineTimers:[],
+  customerTimer:0,
+  level:1,
+  events:[],
+  time:0,
+  camX:0,camY:0,targetCamX:0,targetCamY:0,
+  zoom:1,targetZoom:1
+};
+
+const fmt=n=>'$'+Math.floor(n).toLocaleString('de-DE');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+function rr(x,y,w,h,r,fill,stroke){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.stroke();}
+}
+function shadow(x,y,rx,ry,a=.16){
+  ctx.save();
+  ctx.globalAlpha=a;
+  ctx.fillStyle='#000';
+  ctx.beginPath();
+  ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+function addEvent(t){
+  state.events.unshift(t);
+  state.events=state.events.slice(0,7);
+  ui.events.innerHTML=state.events.map(e=>`<li>${e}</li>`).join('');
+}
+function getMachineUpgradeCost(){return Math.floor(180*Math.pow(1.72,state.machineLevel-1));}
+function getCustCost(){return Math.floor(220*Math.pow(1.62,state.customerBoost-1));}
+function getCashCost(){return Math.floor(340*Math.pow(1.74,state.cashierLevel-1));}
+function renderMachineMeter(){
+  ui.machineMeter.innerHTML='';
+  for(let i=1;i<=3;i++){
+    const el=document.createElement('i');
+    if(i<=state.machineLevel) el.className='on';
+    ui.machineMeter.appendChild(el);
+  }
+}
+function updateUI(){
+  state.level=1+Math.floor((state.machineCount-1)*1.2+(state.machineLevel-1)*0.8+(state.customerBoost-1)*0.8+(state.cashierLevel-1)*0.8);
+  ui.money.textContent=fmt(state.money);
+  ui.burgers.textContent=state.readyBurgers+state.burgers.length;
+  ui.customers.textContent=state.totalCustomers;
+  ui.machines.textContent=state.machineCount;
+  ui.level.textContent=state.level;
+  ui.machineUpgradeCost.textContent=fmt(getMachineUpgradeCost());
+  ui.custCost.textContent=fmt(getCustCost());
+  ui.cashCost.textContent=fmt(getCashCost());
+  ui.btnMachineUpgrade.disabled=state.money<getMachineUpgradeCost();
+  ui.btnCust.disabled=state.money<getCustCost();
+  ui.btnCash.disabled=state.money<getCashCost();
+  renderMachineMeter();
+}
+function burst(x,y,count,color,text=''){
+  for(let i=0;i<count;i++){
+    state.particles.push({
+      x,y,vx:(Math.random()-.5)*2.6,vy:(Math.random()-.5)*2.4-.8,
+      life:36+Math.random()*18,color,text:i===0?text:''
+    });
+  }
+}
+function ensureTimers(){
+  while(state.machineTimers.length<state.machineCount) state.machineTimers.push(Math.random()*.5);
+}
+function resetGame(){
+  Object.assign(state,{
+    money:500,machineCount:1,machineLevel:1,customerBoost:1,cashierLevel:1,totalCustomers:0,
+    readyBurgers:8,burgers:[],customers:[],particles:[],parkedCars:[],customerTimer:0,events:[]
+  });
+  state.machineTimers=Array.from({length:state.machineCount},(_,i)=>0.25+i*0.2+Math.random()*0.25);
+  setupCars();
+  addEvent('HD-Version geladen.');
+  addEvent('Mehr Details & langsamere Abläufe.');
+  updateUI();
+}
+function setupCars(){
+  state.parkedCars=[];
+  const colors=['#d8493a','#3aa3ff','#ffd34c','#69d68f','#ff8a60','#c18cff','#7fd7ff'];
+  for(let i=0;i<8;i++){
+    state.parkedCars.push({
+      x:world.parking.x+110+i*110,
+      y:world.parking.y+125 + (i%2)*18,
+      color:colors[i%colors.length]
+    });
+  }
+}
+function spawnBurger(i){
+  const s=world.machineSlots[i];
+  state.burgers.push({x:s.x+32,y:s.y+14,phase:'toBelt',targetX:world.belt.x1,targetY:world.belt.y,t:0});
+  burst(s.x,s.y,3,'#ffd26b');
+}
+function createCustomer(){
+  const looks=[
+    {shirt:'#ff7b6d',skin:'#ffd0b6',hair:'#5a3823',pants:'#2e3d54'},
+    {shirt:'#54c8ff',skin:'#f0d6c5',hair:'#6a4728',pants:'#36475b'},
+    {shirt:'#88ea7d',skin:'#d99a73',hair:'#50301d',pants:'#2f3744'},
+    {shirt:'#ffd76b',skin:'#ffd0b6',hair:'#65442b',pants:'#404a5a'},
+    {shirt:'#c79eff',skin:'#f0d6c5',hair:'#44291b',pants:'#3a4050'},
+    {shirt:'#ff9fd0',skin:'#8c5c3d',hair:'#231510',pants:'#2e3748'}
+  ][Math.floor(Math.random()*6)];
+  const car=state.parkedCars[Math.floor(Math.random()*state.parkedCars.length)];
+  return {
+    x:car.x+Math.random()*8-4,
+    y:car.y+28+Math.random()*8,
+    tx:0,ty:0,
+    look:looks,
+    state:'walkFromCar',
+    wait:0,
+    legPhase:Math.random()*Math.PI*2,
+    gone:false
+  };
+}
+function spawnCustomer(){ state.customers.push(createCustomer()); }
+function sellOne(){
+  if(state.readyBurgers<=0) return false;
+  const price=18+state.cashierLevel*3+Math.floor(Math.random()*5);
+  state.readyBurgers--;
+  state.money+=price;
+  state.totalCustomers++;
+  burst(world.restaurant.x+360,world.restaurant.y+380,7,'#8cff9d','+'+price);
+  return true;
+}
+
+function update(dt){
+  state.time+=dt;
+  state.camX=lerp(state.camX,state.targetCamX,.04);
+  state.camY=lerp(state.camY,state.targetCamY,.04);
+  state.zoom=lerp(state.zoom,state.targetZoom,.08);
+
+  ensureTimers();
+  let prodDelay=Math.max(.45,1.35-state.machineCount*.06-state.machineLevel*.08);
+  for(let i=0;i<state.machineTimers.length;i++){
+    state.machineTimers[i]-=dt;
+    if(state.machineTimers[i]<=0){
+      spawnBurger(i);
+      if(state.machineLevel>=2 && Math.random()<Math.min(.7,.12+state.machineLevel*.18)) spawnBurger(i);
+      state.machineTimers[i]=prodDelay+Math.random()*.35;
+    }
+  }
+
+  for(const b of state.burgers){
+    if(b.phase==='toBelt'){
+      b.x=lerp(b.x,b.targetX,.08*dt*60);
+      b.y=lerp(b.y,b.targetY,.08*dt*60);
+      if(Math.hypot(b.x-b.targetX,b.y-b.targetY)<5){b.phase='belt';b.t=0;}
+    }else if(b.phase==='belt'){
+      b.t+=dt*(.10+state.machineLevel*.02);
+      b.x=lerp(world.belt.x1,world.belt.x2,b.t);
+      b.y=world.belt.y+Math.sin(b.t*12)*2;
+      if(b.t>=1){
+        b.phase='counter';
+        b.targetX=world.restaurant.x+285+Math.random()*160;
+        b.targetY=world.restaurant.y+365+Math.random()*24;
+      }
+    }else if(b.phase==='counter'){
+      b.x=lerp(b.x,b.targetX,.12*dt*60);
+      b.y=lerp(b.y,b.targetY,.12*dt*60);
+      if(Math.hypot(b.x-b.targetX,b.y-b.targetY)<6){b.done=true;state.readyBurgers++;}
+    }
+  }
+  state.burgers=state.burgers.filter(b=>!b.done).slice(-180);
+
+  state.customerTimer-=dt;
+  const spawnRate=Math.max(.48,2.4-state.customerBoost*.22);
+  if(state.customerTimer<=0){
+    state.customerTimer=spawnRate*(0.85+Math.random()*0.5);
+    spawnCustomer();
+  }
+
+  const queuePeople=state.customers.filter(c=>c.state==='queue');
+  for(const c of state.customers){
+    c.legPhase += dt*8;
+    if(c.state==='walkFromCar'){
+      c.tx=world.restaurant.x+600;
+      c.ty=world.restaurant.y+720;
+      if(Math.hypot(c.x-c.tx,c.y-c.ty)<12) c.state='door';
+    }else if(c.state==='door'){
+      c.tx=world.entryDoor.x;
+      c.ty=world.entryDoor.y;
+      if(Math.hypot(c.x-c.tx,c.y-c.ty)<10) c.state='inside';
+    }else if(c.state==='inside'){
+      c.tx=world.lobby.x;
+      c.ty=world.lobby.y;
+      if(Math.hypot(c.x-c.tx,c.y-c.ty)<10) c.state='queue';
+    }else if(c.state==='queue'){
+      const idx=queuePeople.indexOf(c);
+      c.tx=world.queueArea.x+(idx%3)*64;
+      c.ty=world.queueArea.y+Math.floor(idx/3)*48;
+    }else if(c.state==='toCounter'){
+      c.tx=world.counter.x+135;
+      c.ty=world.counter.y+155;
+      if(Math.hypot(c.x-c.tx,c.y-c.ty)<9) c.state='buying';
+    }else if(c.state==='buying'){
+      c.wait-=dt;
+      if(c.wait<=0){
+        if(sellOne()) c.state='leaveInside';
+        else c.wait=.5;
+      }
+    }else if(c.state==='leaveInside'){
+      c.tx=world.lobby.x;
+      c.ty=world.lobby.y;
+      if(Math.hypot(c.x-c.tx,c.y-c.ty)<10) c.state='leaveDoor';
+    }else if(c.state==='leaveDoor'){
+      c.tx=world.restaurant.x+600;
+      c.ty=world.restaurant.y+720;
+      if(Math.hypot(c.x-c.tx,c.y-c.ty)<10) c.state='walkToCar';
+    }else if(c.state==='walkToCar'){
+      c.tx=world.entryRoad.x+world.entryRoad.w-260;
+      c.ty=world.entryRoad.y-40;
+      if(Math.hypot(c.x-c.tx,c.y-c.ty)<14) c.gone=true;
+    }
+    c.x=lerp(c.x,c.tx,.04*dt*60);
+    c.y=lerp(c.y,c.ty,.04*dt*60);
+  }
+  const front=queuePeople.sort((a,b)=>a.y-b.y)[0];
+  if(front && front.state==='queue' && Math.hypot(front.x-world.queueArea.x,front.y-world.queueArea.y)<22){
+    front.state='toCounter';
+    front.wait=Math.max(.45,1.25-state.cashierLevel*.13);
+  }
+  state.customers=state.customers.filter(c=>!c.gone).slice(0,18);
+
+  for(const p of state.particles){
+    p.x+=p.vx*dt*60;
+    p.y+=p.vy*dt*60;
+    p.vy+=.02*dt*60;
+    p.life-=dt*60;
+  }
+  state.particles=state.particles.filter(p=>p.life>0);
+
+  updateUI();
+}
+
+function drawBurger(x,y,s=1){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.scale(s,s);
+  rr(-22,-15,44,13,7,'#efc24b');
+  ctx.fillStyle='#fff2cb';
+  for(let i=0;i<7;i++){
+    ctx.beginPath();
+    ctx.ellipse(-14+i*4.8,-11,1.3,2,Math.PI/5,0,Math.PI*2);
+    ctx.fill();
+  }
+  rr(-17,-2,34,9,3,'#6e401f');
+  rr(-16,4,32,3,1,'#4dbb56');
+  rr(-16,7,30,5,1,'#ffcf4a');
+  rr(-22,13,44,12,7,'#efc24b');
+  ctx.restore();
+}
+
+function drawCustomerBack(c){
+  const x=c.x,y=c.y;
+  const legSwing=Math.sin(c.legPhase)*4;
+  shadow(x,y+22,15,5,.14);
+
+  ctx.strokeStyle='#3b4048';
+  ctx.lineWidth=3.5;
+  ctx.beginPath(); ctx.moveTo(x-4,y+23); ctx.lineTo(x-7-legSwing*0.2,y+36); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+4,y+23); ctx.lineTo(x+7+legSwing*0.2,y+36); ctx.stroke();
+
+  ctx.fillStyle=c.look.pants;
+  rr(x-11,y+8,22,18,6,c.look.pants);
+
+  ctx.fillStyle=c.look.shirt;
+  rr(x-13,y-2,26,22,8,c.look.shirt);
+
+  ctx.beginPath(); ctx.moveTo(x-13,y+5); ctx.lineTo(x-18,y+15+legSwing*0.15); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x+13,y+5); ctx.lineTo(x+18,y+15-legSwing*0.15); ctx.stroke();
+
+  ctx.fillStyle=c.look.skin;
+  rr(x-4,y-12,8,8,2,c.look.skin);
+  ctx.beginPath(); ctx.arc(x,y-19,12,0,Math.PI*2); ctx.fill();
+
+  ctx.fillStyle=c.look.hair;
+  ctx.beginPath();
+  ctx.arc(x,y-21,12,Math.PI,0);
+  ctx.fill();
+  rr(x-12,y-21,24,8,4,c.look.hair);
+}
+
+function drawGround(){
+  const g=ctx.createLinearGradient(0,0,0,world.h);
+  g.addColorStop(0,'#a0ea79');
+  g.addColorStop(1,'#61bf47');
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,world.w,world.h);
+
+  for(let y=0;y<world.h;y+=54){
+    ctx.fillStyle=y%108===0?'rgba(255,255,255,.06)':'rgba(0,0,0,.03)';
+    ctx.fillRect(0,y,world.w,24);
+  }
+
+  rr(110,170,2200,620,34,'#cfd8df');
+  rr(128,188,2164,584,28,'#9fe37a');
+}
+function drawRoadSystem(){
+  const r=world.entryRoad;
+  shadow(r.x+r.w/2,r.y+r.h+10,500,20,.12);
+  rr(r.x,r.y,r.w,r.h,34,'#5d6571');
+  rr(r.x+22,r.y+22,r.w-44,r.h-44,28,'#656e7b');
+  for(let x=r.x+70;x<r.x+r.w-80;x+=110){
+    ctx.fillStyle='#f0e39f';
+    ctx.fillRect(x,r.y+r.h/2-6,56,12);
+  }
+}
+function drawParking(){
+  const p=world.parking;
+  shadow(p.x+p.w/2,p.y+p.h+8,300,18,.10);
+  rr(p.x,p.y,p.w,p.h,28,'#8e98a3');
+  rr(p.x+18,p.y+18,p.w-36,p.h-36,22,'#a0aab5');
+  for(let i=0;i<8;i++){
+    ctx.strokeStyle='rgba(255,255,255,.55)';
+    ctx.lineWidth=3;
+    const x=p.x+55+i*110;
+    ctx.beginPath();
+    ctx.moveTo(x,p.y+30);
+    ctx.lineTo(x,p.y+p.h-30);
+    ctx.stroke();
+  }
+}
+function drawCars(){
+  for(const car of state.parkedCars){
+    shadow(car.x,car.y+18,32,8,.15);
+    rr(car.x-34,car.y-12,68,24,10,car.color);
+    rr(car.x-18,car.y-10,20,13,4,'#edf6ff');
+    rr(car.x+8,car.y-10,18,13,4,'#d9e8f2');
+    ctx.fillStyle='#282828';
+    ctx.beginPath(); ctx.arc(car.x-17,car.y+13,6,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(car.x+17,car.y+13,6,0,Math.PI*2); ctx.fill();
+  }
+}
+function drawTrees(){
+  const pts=[[120,120],[220,96],[2280,140],[2340,300],[150,1210],[2190,1180],[1760,1150],[1100,1170],[1420,1200]];
+  for(const [x,y] of pts){
+    shadow(x,y+28,30,9,.17);
+    rr(x-6,y+12,12,26,4,'#7e512e');
+    ctx.fillStyle='#2d9342'; ctx.beginPath(); ctx.arc(x,y,31,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#41b55d'; ctx.beginPath(); ctx.arc(x-15,y-8,18,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+15,y-6,17,0,Math.PI*2); ctx.fill();
+  }
+}
+function drawFactory(){
+  const f=world.factory;
+  shadow(f.x+f.w/2,f.y+f.h+22,300,26,.16);
+  rr(f.x,f.y,f.w,f.h,34,'#dde5ea');
+  rr(f.x+22,f.y+22,f.w-44,118,26,'#cb3126');
+  rr(f.x+220,f.y+54,310,44,20,'#f5ca43');
+  ctx.fillStyle='#8f241d';
+  ctx.font='900 38px Arial';
+  ctx.fillText('BURGER FABRIK',f.x+242,f.y+87);
+
+  for(let i=0;i<4;i++) rr(f.x+46+i*145,f.y+44,88,64,12,'#d4f0ff');
+  rr(f.x+32,f.y+180,f.w-64,38,14,'#bdc7cf');
+  rr(f.x+32,f.y+240,520,160,22,'#a8b7c4');
+  rr(f.x+32,f.y+422,520,128,22,'#9fb0bc');
+  rr(f.x+592,f.y+240,136,310,22,'#90a3b1');
+
+  for(let i=0;i<3;i++){
+    const sx=f.x+620+i*42;
+    rr(sx,f.y-36,30,98,12,'#96a7b4');
+    rr(sx+3,f.y-42,24,10,5,'#bfccd5');
+  }
+
+  for(let i=0;i<world.machineSlots.length;i++){
+    const s=world.machineSlots[i];
+    if(i<state.machineCount) drawMachine(s.x-56,s.y-34,i);
+    else{
+      shadow(s.x,s.y+20,42,10,.1);
+      rr(s.x-60,s.y-42,120,84,18,'rgba(255,255,255,.15)');
+      ctx.setLineDash([10,7]);
+      ctx.lineWidth=4;
+      rr(s.x-60,s.y-42,120,84,18,null,'rgba(255,255,255,.48)');
+      ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,255,255,.86)';
+      ctx.font='900 16px Arial';
+      ctx.textAlign='center';
+      ctx.fillText('FREI AB',s.x,s.y-6);
+      ctx.fillText('LEVEL 3',s.x,s.y+18);
+    }
+  }
+}
+function drawMachine(x,y,i){
+  shadow(x+56,y+68,38,9,.11);
+  rr(x,y,112,70,18,'#f0c242');
+  rr(x+10,y+8,34,20,6,'#7c572a');
+  rr(x+54,y+10,44,26,7,'#eef4fb');
+  rr(x+20,y+46,72,10,5,'#8597a6');
+  ctx.fillStyle=Math.sin(state.time*4+i)>0?'#6fff98':'#ff6565';
+  ctx.beginPath(); ctx.arc(x+96,y+16,5,0,Math.PI*2); ctx.fill();
+}
+function drawBelt(){
+  const y=world.belt.y,x1=world.belt.x1,x2=world.belt.x2,w=x2-x1;
+  shadow(x1+w/2,y+24,220,14,.14);
+  rr(x1-40,y-24,w+80,48,20,'#8c98a6');
+  rr(x1-28,y-13,w+56,26,12,'#313840');
+  for(let x=x1-8;x<x2+12;x+=34){
+    ctx.fillStyle='#5d6670';
+    ctx.fillRect(x,y-10,18,20);
+  }
+}
+function drawRestaurant(){
+  const r=world.restaurant;
+  shadow(r.x+r.w/2,r.y+r.h+22,300,26,.16);
+  rr(r.x,r.y,r.w,r.h,34,'#efe7da');
+  rr(r.x+20,r.y+20,r.w-40,120,26,'#ce3327');
+  rr(r.x+210,r.y+56,340,48,20,'#f7cc43');
+  ctx.fillStyle='#92251d';
+  ctx.font='900 46px Arial';
+  ctx.fillText('McBurger',r.x+245,r.y+92);
+
+  for(let i=0;i<4;i++) rr(r.x+52+i*145,r.y+172,102,120,16,'#bce8ff');
+
+  rr(r.x+130,r.y+315,370,130,24,'#cf694a');
+  rr(r.x+158,r.y+342,314,22,8,'#e48a6d');
+  rr(r.x+180,r.y+385,268,26,8,'#b85439');
+  ctx.fillStyle='#fff5d4';
+  ctx.font='900 31px Arial';
+  ctx.fillText('KASSE',r.x+253,r.y+423);
+
+  rr(r.x+160,r.y+472,390,110,20,'#8e9ba6');
+  rr(r.x+558,r.y+315,146,140,18,'#faf4eb');
+
+  rr(r.x+586,r.y+528,86,118,15,'#9a6846');
+  rr(r.x+596,r.y+538,66,88,12,'#bde6ff');
+  rr(r.x+600,r.y+748,120,24,11,'#909da8');
+}
+function drawQueueRails(){
+  const sx=world.queueArea.x-14, sy=world.queueArea.y-26;
+  ctx.strokeStyle='#8a97a2';
+  ctx.lineWidth=8;
+  for(let i=0;i<3;i++){
+    ctx.beginPath();
+    ctx.moveTo(sx+i*64,sy);
+    ctx.lineTo(sx+i*64,sy+110);
+    ctx.stroke();
+  }
+}
+function drawPlaza(){
+  const p=world.plaza;
+  rr(p.x,p.y,p.w,p.h,24,'#d8dfe5');
+  rr(p.x+14,p.y+14,p.w-28,p.h-28,18,'#bac3cb');
+}
+function drawParticles(){
+  ctx.save();
+  ctx.textAlign='center';
+  for(const p of state.particles){
+    ctx.globalAlpha=clamp(p.life/40,0,1);
+    if(p.text){
+      ctx.fillStyle=p.color;
+      ctx.font='bold 18px Arial';
+      ctx.fillText(p.text,p.x,p.y);
+    }else{
+      ctx.fillStyle=p.color;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,2.6,0,Math.PI*2);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+function drawBurgers(){
+  for(const b of state.burgers) drawBurger(b.x,b.y,.9);
+  const count=Math.min(14,state.readyBurgers);
+  for(let i=0;i<count;i++){
+    const x=world.restaurant.x+250+(i%7)*46;
+    const y=world.restaurant.y+295-Math.floor(i/7)*20;
+    drawBurger(x,y,.8);
+  }
+}
+function setWorldTransform(){
+  ctx.translate(innerWidth/2+state.camX,innerHeight/2+state.camY-16);
+  ctx.scale(state.zoom,state.zoom);
+  ctx.translate(-world.w/2,-world.h/2);
+}
+function drawScene(){
+  ctx.clearRect(0,0,innerWidth,innerHeight);
+  const sky=ctx.createLinearGradient(0,0,0,innerHeight);
+  sky.addColorStop(0,'#87deff');
+  sky.addColorStop(1,'#f5fdff');
+  ctx.fillStyle=sky;
+  ctx.fillRect(0,0,innerWidth,innerHeight);
+
+  ctx.save();
+  setWorldTransform();
+  drawGround();
+  drawTrees();
+  drawRoadSystem();
+  drawParking();
+  drawCars();
+  drawFactory();
+  drawBelt();
+  drawRestaurant();
+  drawQueueRails();
+  drawPlaza();
+  drawBurgers();
+  drawCustomers();
+  drawParticles();
+  ctx.restore();
+}
+function resize(){
+  canvas.width=innerWidth*devicePixelRatio;
+  canvas.height=innerHeight*devicePixelRatio;
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+}
+
+window.addEventListener('mousemove',e=>{
+  state.targetCamX=(e.clientX/innerWidth-.5)*40;
+  state.targetCamY=(e.clientY/innerHeight-.5)*22;
+});
+window.addEventListener('wheel',e=>{
+  e.preventDefault();
+  state.targetZoom=clamp(state.targetZoom+(e.deltaY>0?-.04:.04),.82,.98);
+},{passive:false});
+
+ui.btnManage.onclick=()=>ui.drawer.classList.toggle('open');
+ui.btnCloseDrawer.onclick=()=>ui.drawer.classList.remove('open');
+
+ui.btnMachineUpgrade.onclick=()=>{
+  const c=getMachineUpgradeCost();
+  if(state.money<c) return;
+  state.money-=c;
+  state.machineLevel++;
+  if(state.machineLevel>3){
+    state.machineLevel=1;
+    if(state.machineCount<world.machineSlots.length){
+      const s=world.machineSlots[state.machineCount];
+      state.machineCount++;
+      ensureTimers();
+      burst(s.x,s.y,16,'#ffd36a');
+      addEvent('Neue Maschine freigeschaltet.');
+    } else {
+      state.machineLevel=3;
+    }
+  } else {
+    burst(world.factory.x+620,world.factory.y+260,14,'#7ce1ff');
+    addEvent('Maschine verbessert.');
+  }
+  updateUI();
+};
+ui.btnCust.onclick=()=>{
+  const c=getCustCost();
+  if(state.money<c) return;
+  state.money-=c;
+  state.customerBoost++;
+  burst(world.restaurant.x+680,world.restaurant.y+600,12,'#9affad');
+  addEvent('Mehr Kunden.');
+  updateUI();
+};
+ui.btnCash.onclick=()=>{
+  const c=getCashCost();
+  if(state.money<c) return;
+  state.money-=c;
+  state.cashierLevel++;
+  burst(world.restaurant.x+320,world.restaurant.y+390,10,'#fff1a8');
+  addEvent('Kasse besser.');
+  updateUI();
+};
+ui.btnReset.onclick=resetGame;
+
+resize();
+resetGame();
+
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(.05,(now-last)/1000);
+  last=now;
+  update(dt);
+  drawScene();
+  requestAnimationFrame(frame);
+}
+window.addEventListener('resize',resize);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
