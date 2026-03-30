@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>McBurger Tycoon Candy</title>
+<style>
+:root{
+  --sky1:#89ddff; --sky2:#f6fdff;
+  --grass1:#9eea76; --grass2:#63bf49;
+  --cream:#fff4df; --cream2:#f7e5c2;
+  --mcred:#db3227; --mcred2:#b81f18;
+  --mcyellow:#ffd84f; --mcyellow2:#ffb92d;
+  --mcgreen:#84d86c;
+  --brown:#7b4a22; --steel:#98a8b4;
+  --text:#5b2614; --white:#fffdf7;
+  --shadow:0 16px 40px rgba(123,74,34,.18);
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;height:100%;overflow:hidden;
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+  background:linear-gradient(var(--sky1),var(--sky2));
+  color:#412014;
+}
+canvas{display:block;width:100vw;height:100vh}
+
+/* top */
+.top{
+  position:fixed; left:14px; right:14px; top:14px;
+  display:flex; justify-content:space-between; align-items:flex-start; gap:14px;
+  pointer-events:none;
+}
+.brand,.money,.miniStats,.log,.dock{
+  pointer-events:auto;
+  box-shadow:var(--shadow);
+}
+.brand{
+  background:linear-gradient(180deg,var(--mcred),var(--mcred2));
+  border:4px solid #ffd24e;
+  border-radius:22px;
+  padding:10px 16px;
+  min-width:260px;
+}
+.brand h1{margin:0;font-size:22px;line-height:1.1;color:#fff8ea}
+.brand .mc{color:#ffd84f;font-weight:900}
+
+.money{
+  background:linear-gradient(180deg,#fff8ea,#ffe9b5);
+  border:4px solid var(--mcred);
+  border-radius:999px;
+  min-width:200px;
+  text-align:center;
+  padding:9px 16px;
+  font-size:24px;
+  font-weight:900;
+  color:#1a9c47;
+}
+.money small{
+  display:block;font-size:10px;text-transform:uppercase;letter-spacing:.8px;
+  color:#9a5c28;margin-bottom:2px;
+}
+
+/* stats */
+.miniStats{
+  position:fixed; left:14px; top:88px;
+  width:232px;
+  background:linear-gradient(180deg,#fff8ea,#ffe8b3);
+  border:4px solid var(--mcred);
+  border-radius:22px;
+  padding:10px;
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+}
+.stat{
+  border-radius:16px;
+  padding:10px 11px;
+  background:linear-gradient(180deg,#fffdfa,#ffeecb);
+  border:3px solid #f5c74d;
+}
+.stat .k{
+  font-size:10px;text-transform:uppercase;letter-spacing:.8px;
+  color:#b56f1d;margin-bottom:5px;font-weight:800;
+}
+.stat .v{font-size:25px;font-weight:900;color:#7b2d14}
+
+/* log */
+.log{
+  position:fixed; right:14px; top:88px; width:235px;
+  border-radius:22px; padding:10px 12px;
+  background:linear-gradient(180deg,#fff8ea,#ffe8b3);
+  border:4px solid var(--mcred);
+}
+.log h3{margin:0 0 8px;font-size:14px;color:#8e2b17}
+.log ul{
+  margin:0;padding-left:16px;max-height:180px;overflow:auto;
+  color:#8b5d2d;font-size:11px;line-height:1.35;
+}
+
+/* bottom shop */
+.dock{
+  position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+  width:min(1280px, calc(100vw - 28px));
+  border-radius:28px; padding:12px;
+  background:linear-gradient(180deg,var(--mcred),var(--mcred2));
+  border:4px solid var(--mcyellow);
+}
+.dockGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.shopCard{
+  border-radius:20px;
+  padding:11px;
+  background:linear-gradient(180deg,#fff9eb,#ffe7b0);
+  border:3px solid #f7c949;
+  display:grid; gap:9px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65);
+}
+.shopTop{display:flex;align-items:center;gap:9px}
+.icon{
+  width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
+  background:linear-gradient(180deg,var(--mcyellow),var(--mcyellow2));
+  border:3px solid var(--mcred);
+  font-size:21px;flex:none;
+}
+.titleWrap{min-width:0;flex:1}
+.titleWrap b{display:block;font-size:13px;color:#8f2e16}
+.titleWrap span{display:block;color:#b26e1e;font-size:10px;font-weight:700}
+.price{
+  padding:5px 8px;border-radius:999px;
+  background:linear-gradient(180deg,#fff8ea,#ffe6a4);
+  border:2px solid var(--mcred);
+  font-size:11px;font-weight:900;color:#992d18;white-space:nowrap;
+}
+button{
+  appearance:none;border:none;cursor:pointer;
+  border-radius:13px;padding:10px 12px;
+  font-weight:900;font-size:12px;color:#651f10;
+  background:linear-gradient(180deg,var(--mcyellow),var(--mcyellow2));
+  border:2px solid #a53f17;
+  box-shadow:inset 0 -3px 0 rgba(140,54,18,.22), 0 6px 12px rgba(0,0,0,.10);
+  transition:.14s transform,.14s filter,.14s opacity;
+}
+button:hover{transform:translateY(-1px);filter:brightness(1.03)}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none;filter:none}
+.reset{
+  background:linear-gradient(180deg,#ff7a55,#e34828);
+  color:#fff8ea;
+  border-color:#8f2315;
+}
+.tip{
+  position:fixed; right:14px; bottom:142px;
+  background:linear-gradient(180deg,#fff8ea,#ffe8b3);
+  border:3px solid var(--mcred);
+  color:#9b5a25; font-weight:800;
+  border-radius:999px; padding:7px 12px; font-size:11px;
+  box-shadow:var(--shadow);
+}
+@media (max-width:1150px){.dockGrid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="top">
+  <div class="brand"><h1><span class="mc">McBurger</span> Tycoon</h1></div>
+  <div class="money"><small>Kontostand</small><span id="money">$500</span></div>
+</div>
+
+<div class="miniStats">
+  <div class="stat"><div class="k">Burger</div><div class="v" id="burgers">0</div></div>
+  <div class="stat"><div class="k">Kunden</div><div class="v" id="customers">0</div></div>
+  <div class="stat"><div class="k">Maschinen</div><div class="v" id="machines">2</div></div>
+  <div class="stat"><div class="k">Level</div><div class="v" id="level">1</div></div>
+</div>
+
+<div class="log"><h3>Log</h3><ul id="events"></ul></div>
+<div class="tip">Klick Fabrik = Turbo · Klick Kasse = Sofortverkauf</div>
+
+<div class="dock">
+  <div class="dockGrid">
+    <div class="shopCard">
+      <div class="shopTop"><div class="icon">⚙️</div><div class="titleWrap"><b>Maschine</b><span>Mehr Produktion</span></div><div class="price" id="machineCost">$260</div></div>
+      <button id="btnMachine">Kaufen</button>
+    </div>
+    <div class="shopCard">
+      <div class="shopTop"><div class="icon">🚀</div><div class="titleWrap"><b>Effizienz</b><span>Mehr Burger</span></div><div class="price" id="effCost">$480</div></div>
+      <button id="btnEff">Upgrade</button>
+    </div>
+    <div class="shopCard">
+      <div class="shopTop"><div class="icon">🧍</div><div class="titleWrap"><b>Kunden</b><span>Mehr Besucher</span></div><div class="price" id="custCost">$220</div></div>
+      <button id="btnCust">Kaufen</button>
+    </div>
+    <div class="shopCard">
+      <div class="shopTop"><div class="icon">💳</div><div class="titleWrap"><b>Kasse</b><span>Schneller verkaufen</span></div><div class="price" id="cashCost">$340</div></div>
+      <button id="btnCash">Upgrade</button>
+    </div>
+    <div class="shopCard">
+      <div class="shopTop"><div class="icon">↺</div><div class="titleWrap"><b>Spiel</b><span>Neu starten</span></div></div>
+      <button class="reset" id="btnReset">Reset</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const ui={money:money,burgers:burgers,customers:customers,machines:machines,level:level,machineCost:machineCost,effCost:effCost,custCost:custCost,cashCost:cashCost,events:events,btnMachine:btnMachine,btnEff:btnEff,btnCust:btnCust,btnCash:btnCash,btnReset:btnReset};
+
+const world={w:2300,h:1250,factory:{x:250,y:250,w:720,h:440},machineSlots:[{x:360,y:420},{x:555,y:420},{x:750,y:420},{x:360,y:560},{x:555,y:560},{x:750,y:560}],belt:{x1:930,x2:1330,y:490},restaurant:{x:1300,y:220,w:720,h:500},entranceOutside:{x:1790,y:740},entranceDoor:{x:1870,y:650},lobby:{x:1810,y:600},queueArea:{x:1510,y:545},counter:{x:1430,y:500,w:300,h:120},road:{x:120,y:920,w:2060,h:150},plaza:{x:1290,y:770,w:810,h:130},factoryHotspot:{x:250,y:250,w:720,h:440},cashHotspot:{x:1430,y:500,w:300,h:120}};
+const state={money:500,machineCount:2,efficiency:1,customerBoost:1,cashierLevel:1,totalCustomers:0,readyBurgers:10,burgers:[],customers:[],particles:[],machineTimers:[],customerTimer:0,turbo:0,level:1,events:[],time:0,camX:0,camY:0,targetCamX:0,targetCamY:0,zoom:1,targetZoom:1,mouseWorldX:0,mouseWorldY:0,lastSellBurst:0};
+
+const fmt=n=>'$'+Math.floor(n).toLocaleString('de-DE');
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const pointIn=(x,y,r)=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h;
+function rr(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
+function shadow(x,y,rx,ry,a=.16){ctx.save();ctx.globalAlpha=a;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.restore()}
+function addEvent(t){state.events.unshift(t);state.events=state.events.slice(0,7);ui.events.innerHTML=state.events.map(e=>`<li>${e}</li>`).join('')}
+const getMachineCost=()=>Math.floor(260*Math.pow(1.58,state.machineCount-1));
+const getEffCost=()=>Math.floor(480*Math.pow(1.75,state.efficiency-1));
+const getCustCost=()=>Math.floor(220*Math.pow(1.62,state.customerBoost-1));
+const getCashCost=()=>Math.floor(340*Math.pow(1.74,state.cashierLevel-1));
+function updateUI(){state.level=1+Math.floor((state.machineCount-2)*0.7+(state.efficiency-1)*1.1+(state.customerBoost-1)*0.8+(state.cashierLevel-1)*0.8);ui.money.textContent=fmt(state.money);ui.burgers.textContent=state.readyBurgers+state.burgers.length;ui.customers.textContent=state.totalCustomers;ui.machines.textContent=state.machineCount;ui.level.textContent=state.level;ui.machineCost.textContent=fmt(getMachineCost());ui.effCost.textContent=fmt(getEffCost());ui.custCost.textContent=fmt(getCustCost());ui.cashCost.textContent=fmt(getCashCost());ui.btnMachine.disabled=state.money<getMachineCost()||state.machineCount>=world.machineSlots.length;ui.btnEff.disabled=state.money<getEffCost();ui.btnCust.disabled=state.money<getCustCost();ui.btnCash.disabled=state.money<getCashCost()}
+function burst(x,y,count,color,text=''){for(let i=0;i<count;i++)state.particles.push({x,y,vx:(Math.random()-.5)*2.8,vy:(Math.random()-.5)*2.5-.8,life:34+Math.random()*18,color,text:i===0?text:''})}
+function ensureTimers(){while(state.machineTimers.length<state.machineCount)state.machineTimers.push(Math.random()*.5)}
+function resetGame(){Object.assign(state,{money:500,machineCount:2,efficiency:1,customerBoost:1,cashierLevel:1,totalCustomers:0,readyBurgers:10,burgers:[],customers:[],particles:[],customerTimer:0,turbo:0,events:[]});state.machineTimers=Array.from({length:state.machineCount},(_,i)=>0.2+i*0.18+Math.random()*0.2);addEvent('McStyle-Version geladen.');addEvent('Farben rot-gelb angepasst.');updateUI()}
+function spawnBurger(i){const s=world.machineSlots[i];state.burgers.push({x:s.x+26,y:s.y+10,phase:'toBelt',targetX:world.belt.x1,targetY:world.belt.y,t:0});burst(s.x,s.y,3,'#ffd26b')}
+function createCustomer(){const ps=[['#ff726f','#ffd0b5','#5c3a22'],['#4fc8ff','#f0d7c6','#65462a'],['#84ec7f','#d99972','#583620'],['#ffd66b','#ffd0b5','#6b4a2a'],['#c39bff','#f0d7c6','#4d3020'],['#ff9fcb','#8c5b3d','#2e1a14']][Math.floor(Math.random()*6)];return{x:world.entranceOutside.x+Math.random()*30,y:world.entranceOutside.y+Math.random()*20,tx:0,ty:0,body:ps[0],skin:ps[1],hair:ps[2],state:'approach',wait:0,gone:false}}
+function spawnCustomer(){state.customers.push(createCustomer())}
+function sellOne(manual=false){if(state.readyBurgers<=0)return false;const price=16+state.cashierLevel*3+Math.floor(Math.random()*4);state.readyBurgers--;state.money+=price;state.totalCustomers++;state.lastSellBurst=.22;burst(world.restaurant.x+300,world.restaurant.y+330,8,'#8cff9d','+'+price);if(manual)addEvent('Sofortverkauf.');return true}
+function update(dt){
+ state.time+=dt;state.turbo=Math.max(0,state.turbo-dt);state.lastSellBurst=Math.max(0,state.lastSellBurst-dt);state.camX=lerp(state.camX,state.targetCamX,.05);state.camY=lerp(state.camY,state.targetCamY,.05);state.zoom=lerp(state.zoom,state.targetZoom,.08);
+ ensureTimers();let prodDelay=Math.max(.34,1.05-state.machineCount*.03-state.efficiency*.04);if(state.turbo>0)prodDelay*=.42;
+ for(let i=0;i<state.machineTimers.length;i++){state.machineTimers[i]-=dt;if(state.machineTimers[i]<=0){spawnBurger(i);if(state.efficiency>=2&&Math.random()<Math.min(.8,.16+state.efficiency*.11))spawnBurger(i);state.machineTimers[i]=prodDelay+Math.random()*.22}}
+ for(const b of state.burgers){
+   if(b.phase==='toBelt'){b.x=lerp(b.x,b.targetX,.10*dt*60);b.y=lerp(b.y,b.targetY,.10*dt*60);if(Math.hypot(b.x-b.targetX,b.y-b.targetY)<5){b.phase='belt';b.t=0}}
+   else if(b.phase==='belt'){b.t+=dt*(.16+state.efficiency*.015+(state.turbo>0?.12:0));b.x=lerp(world.belt.x1,world.belt.x2,b.t);b.y=world.belt.y+Math.sin(b.t*14)*2;if(b.t>=1){b.phase='counter';b.targetX=world.restaurant.x+240+Math.random()*130;b.targetY=world.restaurant.y+320+Math.random()*24}}
+   else if(b.phase==='counter'){b.x=lerp(b.x,b.targetX,.14*dt*60);b.y=lerp(b.y,b.targetY,.14*dt*60);if(Math.hypot(b.x-b.targetX,b.y-b.targetY)<6){b.done=true;state.readyBurgers++}}
+ }
+ state.burgers=state.burgers.filter(b=>!b.done).slice(-150);
+ state.customerTimer-=dt;const rate=Math.max(.28,1.85-state.customerBoost*.22);if(state.customerTimer<=0){state.customerTimer=rate*(.75+Math.random()*.45);spawnCustomer()}
+ const activeQueue=state.customers.filter(c=>c.state==='queue');
+ for(const c of state.customers){
+   if(c.state==='approach'){c.tx=world.entranceDoor.x;c.ty=world.entranceDoor.y;if(Math.hypot(c.x-c.tx,c.y-c.ty)<12)c.state='enter'}
+   else if(c.state==='enter'){c.tx=world.lobby.x;c.ty=world.lobby.y;if(Math.hypot(c.x-c.tx,c.y-c.ty)<10)c.state='queue'}
+   else if(c.state==='queue'){const idx=activeQueue.indexOf(c);c.tx=world.queueArea.x+(idx%3)*56;c.ty=world.queueArea.y+Math.floor(idx/3)*42}
+   else if(c.state==='toCounter'){c.tx=world.counter.x+110;c.ty=world.counter.y+150;if(Math.hypot(c.x-c.tx,c.y-c.ty)<9)c.state='buying'}
+   else if(c.state==='buying'){c.wait-=dt;if(c.wait<=0){if(sellOne(false))c.state='leaveInside';else c.wait=.4}}
+   else if(c.state==='leaveInside'){c.tx=world.lobby.x;c.ty=world.lobby.y;if(Math.hypot(c.x-c.tx,c.y-c.ty)<10)c.state='leaveDoor'}
+   else if(c.state==='leaveDoor'){c.tx=world.entranceOutside.x+10;c.ty=world.entranceOutside.y+10;if(Math.hypot(c.x-c.tx,c.y-c.ty)<8)c.gone=true}
+   c.x=lerp(c.x,c.tx,.055*dt*60);c.y=lerp(c.y,c.ty,.055*dt*60);
+ }
+ const front=activeQueue.sort((a,b)=>a.y-b.y)[0];
+ if(front&&front.state==='queue'&&Math.hypot(front.x-world.queueArea.x,front.y-world.queueArea.y)<18){front.state='toCounter';front.wait=Math.max(.24,.96-state.cashierLevel*.12)}
+ state.customers=state.customers.filter(c=>!c.gone).slice(0,24);
+ for(const p of state.particles){p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;p.vy+=.02*dt*60;p.life-=dt*60}
+ state.particles=state.particles.filter(p=>p.life>0);updateUI()
+}
+function drawBurger(x,y,s=1){ctx.save();ctx.translate(x,y);ctx.scale(s,s);rr(-19,-13,38,11,5,'#efc24b');rr(-15,-1,30,8,3,'#6e401f');rr(-16,7,32,3,1,'#55b85d');rr(-19,12,38,11,5,'#efc24b');ctx.restore()}
+function drawPerson(c){shadow(c.x,c.y+22,15,5,.14);ctx.strokeStyle='#353c45';ctx.lineWidth=3.5;ctx.beginPath();ctx.moveTo(c.x-5,c.y+24);ctx.lineTo(c.x-8,c.y+36);ctx.stroke();ctx.beginPath();ctx.moveTo(c.x+5,c.y+24);ctx.lineTo(c.x+8,c.y+36);ctx.stroke();rr(c.x-12,c.y-2,24,28,8,c.body);ctx.beginPath();ctx.moveTo(c.x-12,c.y+6);ctx.lineTo(c.x-18,c.y+15);ctx.stroke();ctx.beginPath();ctx.moveTo(c.x+12,c.y+6);ctx.lineTo(c.x+18,c.y+15);ctx.stroke();rr(c.x-3,c.y-10,6,8,2,c.skin);ctx.fillStyle=c.skin;ctx.beginPath();ctx.arc(c.x,c.y-18,11,0,Math.PI*2);ctx.fill();ctx.fillStyle=c.hair;ctx.beginPath();ctx.arc(c.x,c.y-20,11,Math.PI,0);ctx.fill()}
+function drawGround(){const g=ctx.createLinearGradient(0,0,0,world.h);g.addColorStop(0,'#98e372');g.addColorStop(1,'#61bc48');ctx.fillStyle=g;ctx.fillRect(0,0,world.w,world.h);for(let y=0;y<world.h;y+=54){ctx.fillStyle=y%108===0?'rgba(255,255,255,.06)':'rgba(0,0,0,.03)';ctx.fillRect(0,y,world.w,24)}rr(110,180,1900,560,30,'#d0d8de');rr(125,195,1870,530,24,'#9be176')}
+function drawRoad(){const r=world.road;shadow(r.x+r.w/2,r.y+r.h+8,430,18,.12);rr(r.x,r.y,r.w,r.h,32,'#59616a');for(let x=r.x+55;x<r.x+r.w-60;x+=94){ctx.fillStyle='#f0e3a0';ctx.fillRect(x,r.y+r.h/2-5,46,10)}}
+function drawTrees(){const pts=[[120,120],[220,96],[1910,110],[1980,250],[140,1100],[1890,1060],[1580,1040],[1030,1050]];for(const [x,y] of pts){shadow(x,y+28,30,9,.17);rr(x-6,y+12,12,26,4,'#7e512e');ctx.fillStyle='#2d9342';ctx.beginPath();ctx.arc(x,y,31,0,Math.PI*2);ctx.fill();ctx.fillStyle='#41b55d';ctx.beginPath();ctx.arc(x-15,y-8,18,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+15,y-6,17,0,Math.PI*2);ctx.fill()}}
+function drawFactory(){const f=world.factory;shadow(f.x+f.w/2,f.y+f.h+20,270,24,.16);rr(f.x,f.y,f.w,f.h,32,'#dce4ea');rr(f.x+20,f.y+20,f.w-40,110,24,'#cb3126');rr(f.x+190,f.y+48,270,40,18,'#f5ca43');ctx.fillStyle='#8f241d';ctx.font='900 32px Arial';ctx.fillText('FABRIK',f.x+265,f.y+78);for(let i=0;i<4;i++)rr(f.x+40+i*135,f.y+40,82,58,12,'#d5f3ff');rr(f.x+28,f.y+168,f.w-56,32,12,'#bdc7cf');rr(f.x+28,f.y+220,490,146,20,'#a8b7c4');rr(f.x+28,f.y+385,490,120,20,'#9fb0bc');rr(f.x+548,f.y+220,130,285,20,'#91a4b2');for(let i=0;i<2;i++){const sx=f.x+570+i*56;rr(sx,f.y-30,32,86,10,'#90a4b4');rr(sx+3,f.y-36,26,10,5,'#b8c7d1')}for(let i=0;i<world.machineSlots.length;i++){const s=world.machineSlots[i];if(i<state.machineCount)drawMachine(s.x-50,s.y-30,i);else{shadow(s.x,s.y+20,40,10,.1);rr(s.x-56,s.y-38,112,76,16,'rgba(255,255,255,.15)');ctx.setLineDash([10,7]);ctx.lineWidth=4;rr(s.x-56,s.y-38,112,76,16,null,'rgba(255,255,255,.48)');ctx.setLineDash([]);ctx.fillStyle='rgba(255,255,255,.86)';ctx.font='900 15px Arial';ctx.textAlign='center';ctx.fillText('NÄCHSTE',s.x,s.y-4);ctx.fillText('MASCHINE',s.x,s.y+16)}}if(state.turbo>0)rr(f.x-5,f.y-5,f.w+10,f.h+10,34,null,'rgba(125,255,173,.95)')}
+function drawMachine(x,y,i){shadow(x+50,y+64,36,8,.11);rr(x,y,100,64,16,'#f0c242');rr(x+10,y+8,30,18,6,'#7c572a');rr(x+48,y+9,40,24,7,'#eef4fb');rr(x+18,y+42,64,9,4,'#8597a6');ctx.fillStyle=Math.sin(state.time*4+i)>0?'#6fff98':'#ff6565';ctx.beginPath();ctx.arc(x+86,y+15,5,0,Math.PI*2);ctx.fill()}
+function drawBelt(){const y=world.belt.y,x1=world.belt.x1,x2=world.belt.x2,w=x2-x1;shadow(x1+w/2,y+22,210,12,.14);rr(x1-34,y-22,w+68,44,18,'#8e9ba7');rr(x1-24,y-12,w+48,24,12,'#313840');for(let x=x1-6;x<x2+10;x+=34){ctx.fillStyle='#5d6670';ctx.fillRect(x,y-10,17,20)}}
+function drawRestaurant(){const r=world.restaurant;shadow(r.x+r.w/2,r.y+r.h+20,260,24,.16);rr(r.x,r.y,r.w,r.h,32,'#f0e8db');rr(r.x+18,r.y+18,r.w-36,114,24,'#ce3327');rr(r.x+180,r.y+50,300,42,18,'#f7cc43');ctx.fillStyle='#93251d';ctx.font='900 42px Arial';ctx.fillText('McBurger',r.x+215,r.y+84);for(let i=0;i<4;i++)rr(r.x+44+i*134,r.y+160,94,110,14,'#b8e8ff');rr(r.x+120,r.y+290,340,118,20,'#cf694a');rr(r.x+145,r.y+315,290,20,8,'#e48a6d');rr(r.x+165,r.y+355,250,24,8,'#b85439');ctx.fillStyle='#fff4d0';ctx.font='900 28px Arial';ctx.fillText('KASSE',r.x+230,r.y+390);rr(r.x+145,r.y+440,360,100,18,'#8e9ba6');rr(r.x+520,r.y+295,130,125,18,'#f8f3ea');rr(r.x+548,r.y+495,76,110,14,'#9a6846');rr(r.x+557,r.y+505,58,82,12,'#bde6ff');rr(r.x+560,r.y+682,110,22,10,'#909da8');if(state.lastSellBurst>0){ctx.save();ctx.globalAlpha=state.lastSellBurst*2.6;rr(r.x+110,r.y+278,360,140,24,'rgba(255,220,120,.42)');ctx.restore()}drawBurger(r.x+100,r.y+80,1.32)}
+function drawQueueRails(){const sx=world.queueArea.x-12,sy=world.queueArea.y-20;ctx.strokeStyle='#8a97a2';ctx.lineWidth=7;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(sx+i*56,sy);ctx.lineTo(sx+i*56,sy+98);ctx.stroke()}}
+function drawPlaza(){const p=world.plaza;rr(p.x,p.y,p.w,p.h,22,'#d8dfe5');rr(p.x+14,p.y+14,p.w-28,p.h-28,16,'#bac3cb')}
+function drawCars(){const cars=[[330,995,'#da3f31'],[535,995,'#39a8ff'],[1450,998,'#ffd44f'],[1650,998,'#67d78f']];for(const [x,y,c] of cars){shadow(x,y+16,30,8,.15);rr(x-30,y-12,60,24,8,c);rr(x-16,y-8,18,13,4,'#edf6ff');rr(x+8,y-8,16,13,4,'#dbe8f1');ctx.fillStyle='#282828';ctx.beginPath();ctx.arc(x-15,y+13,6,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+15,y+13,6,0,Math.PI*2);ctx.fill()}}
+function drawCustomers(){for(const c of state.customers)drawPerson(c)}
+function drawParticles(){ctx.save();ctx.textAlign='center';for(const p of state.particles){ctx.globalAlpha=clamp(p.life/40,0,1);if(p.text){ctx.fillStyle=p.color;ctx.font='bold 18px Arial';ctx.fillText(p.text,p.x,p.y)}else{ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,2.6,0,Math.PI*2);ctx.fill()}}ctx.restore()}
+function drawBurgers(){for(const b of state.burgers)drawBurger(b.x,b.y,.84);const count=Math.min(12,state.readyBurgers);for(let i=0;i<count;i++){const x=world.restaurant.x+210+(i%6)*44,y=world.restaurant.y+270-Math.floor(i/6)*18;drawBurger(x,y,.76)}}
+function setWorldTransform(){ctx.translate(innerWidth/2+state.camX+20,innerHeight/2+state.camY+6);ctx.scale(state.zoom,state.zoom);ctx.translate(-world.w/2,-world.h/2)}
+function drawScene(){ctx.clearRect(0,0,innerWidth,innerHeight);const sky=ctx.createLinearGradient(0,0,0,innerHeight);sky.addColorStop(0,'#80d8ff');sky.addColorStop(1,'#f0fdff');ctx.fillStyle=sky;ctx.fillRect(0,0,innerWidth,innerHeight);ctx.save();setWorldTransform();drawGround();drawTrees();drawRoad();drawFactory();drawBelt();drawRestaurant();drawQueueRails();drawPlaza();drawCars();drawBurgers();drawCustomers();drawParticles();if(pointIn(state.mouseWorldX,state.mouseWorldY,world.factoryHotspot))rr(world.factory.x-5,world.factory.y-5,world.factory.w+10,world.factory.h+10,34,null,'rgba(255,255,255,.55)');else if(pointIn(state.mouseWorldX,state.mouseWorldY,world.cashHotspot))rr(world.cashHotspot.x-4,world.cashHotspot.y-4,world.cashHotspot.w+8,world.cashHotspot.h+8,20,null,'rgba(255,255,255,.55)');ctx.restore()}
+function screenToWorld(clientX,clientY){const sx=clientX-innerWidth/2-state.camX-20,sy=clientY-innerHeight/2-state.camY-6;return{x:sx/state.zoom+world.w/2,y:sy/state.zoom+world.h/2}}
+function resize(){canvas.width=innerWidth*devicePixelRatio;canvas.height=innerHeight*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}
+canvas.addEventListener('mousemove',e=>{state.targetCamX=(e.clientX/innerWidth-.5)*56;state.targetCamY=(e.clientY/innerHeight-.5)*32;const p=screenToWorld(e.clientX,e.clientY);state.mouseWorldX=p.x;state.mouseWorldY=p.y;canvas.style.cursor=pointIn(p.x,p.y,world.factoryHotspot)||pointIn(p.x,p.y,world.cashHotspot)?'pointer':'default'});
+canvas.addEventListener('click',e=>{const p=screenToWorld(e.clientX,e.clientY);if(pointIn(p.x,p.y,world.factoryHotspot)){state.turbo=5;burst(p.x,p.y,14,'#7dffaf');addEvent('Turbo an.')}else if(pointIn(p.x,p.y,world.cashHotspot)){if(sellOne(true))burst(p.x,p.y,10,'#ffe38a')}})
+window.addEventListener('wheel',e=>{e.preventDefault();state.targetZoom=clamp(state.targetZoom+(e.deltaY>0?-.05:.05),.9,1.08)},{passive:false});
+ui.btnMachine.onclick=()=>{const c=getMachineCost();if(state.money<c||state.machineCount>=world.machineSlots.length)return;state.money-=c;const s=world.machineSlots[state.machineCount];state.machineCount++;ensureTimers();burst(s.x,s.y,12,'#ffd36a');addEvent('Maschine gekauft.');updateUI()}
+ui.btnEff.onclick=()=>{const c=getEffCost();if(state.money<c)return;state.money-=c;state.efficiency++;burst(world.factory.x+520,world.factory.y+190,12,'#7ce1ff');addEvent('Effizienz erhöht.');updateUI()}
+ui.btnCust.onclick=()=>{const c=getCustCost();if(state.money<c)return;state.money-=c;state.customerBoost++;burst(world.restaurant.x+590,world.restaurant.y+540,12,'#9affad');addEvent('Mehr Kunden.');updateUI()}
+ui.btnCash.onclick=()=>{const c=getCashCost();if(state.money<c)return;state.money-=c;state.cashierLevel++;burst(world.restaurant.x+280,world.restaurant.y+350,10,'#fff1a8');addEvent('Kasse besser.');updateUI()}
+ui.btnReset.onclick=resetGame;
+resize();resetGame();
+let last=performance.now();
+function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);drawScene();requestAnimationFrame(frame)}
+window.addEventListener('resize',resize);requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
