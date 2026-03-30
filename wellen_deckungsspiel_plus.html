@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Wellen-Deckungsspiel Plus</title>
+  <style>
+    :root{
+      --bg:#f4f4f4;
+      --line:#222;
+      --wave:rgba(220,30,30,0.82);
+      --player:#1ea7ff;
+      --bot1:#ff9f1c;
+      --bot2:#8d5cff;
+      --bot3:#2ec27e;
+      --panel:rgba(255,255,255,0.95);
+    }
+    html,body{
+      margin:0;
+      height:100%;
+      overflow:hidden;
+      background:var(--bg);
+      font-family:Arial, sans-serif;
+      touch-action:none;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    canvas{ display:block; width:100vw; height:100vh; }
+    #hud{
+      position:fixed; top:max(12px, env(safe-area-inset-top)); left:max(12px, env(safe-area-inset-left));
+      z-index:10; background:var(--panel); border:2px solid var(--line); border-radius:12px; padding:10px 14px;
+      font-size:14px; line-height:1.45;
+    }
+    #overlay{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:rgba(255,255,255,0.58); z-index:20;
+    }
+    #card{
+      width:min(92vw, 620px); background:var(--panel); border:3px solid var(--line); border-radius:18px;
+      padding:22px; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,0.12);
+    }
+    #card h1{ margin:0 0 10px 0; font-size:34px; }
+    #card p{ margin:8px 0; font-size:18px; }
+    .btnRow{
+      display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:14px;
+    }
+    button{
+      padding:14px 24px; font-size:20px; font-weight:700; border:3px solid var(--line);
+      border-radius:14px; background:white; cursor:pointer; -webkit-appearance:none; appearance:none;
+      touch-action:manipulation;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div><strong>Steuerung:</strong> WASD / Pfeile / Touch ziehen</div>
+    <div>Punkte: <span id="score">0</span></div>
+    <div>Status: <span id="status">Spieler lebt</span></div>
+    <div>Welle: <span id="waveNum">1</span></div>
+    <div>Bots übrig: <span id="botsAlive">3</span></div>
+  </div>
+
+  <div id="overlay">
+    <div id="card">
+      <h1>Wellen-Deckungsspiel Plus</h1>
+      <p>4 feste Blöcke mit <strong>mehr Abstand</strong>.</p>
+      <p>In jeder Runde sind <strong>3 Bots</strong> dabei.</p>
+      <p>Alle Kugeln haben kleine Hände und können sich <strong>wegschubsen</strong>.</p>
+      <p>Wenn du stirbst, kannst du <strong>zuschauen</strong> oder zurück ins <strong>Menü</strong>.</p>
+      <div class="btnRow">
+        <button id="startBtn" type="button">Starten</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const card = document.getElementById("card");
+    const scoreEl = document.getElementById("score");
+    const statusEl = document.getElementById("status");
+    const waveNumEl = document.getElementById("waveNum");
+    const botsAliveEl = document.getElementById("botsAlive");
+
+    const keys = {};
+    addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+    addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+    const touch = { active:false, x:0, y:0, dx:0, dy:0 };
+
+    const world = { w:0, h:0, arena:null, blocks:[] };
+    let running = false;
+    let observing = false;
+    let score = 0;
+    let waveCount = 0;
+    let spawnCooldown = 0;
+    let currentWave = null;
+    let humans = [];
+    let player = null;
+
+    function makeActor(x, y, color, isBot, name){
+      return {
+        x, y,
+        vx: 0, vy: 0,
+        r: 15,
+        speed: isBot ? 220 : 260,
+        alive: true,
+        isBot,
+        color,
+        name,
+        pushFlash: 0
+      };
+    }
+
+    function setUI(){
+      scoreEl.textContent = Math.floor(score);
+      waveNumEl.textContent = Math.max(1, waveCount);
+      const botsAlive = humans.filter(h => h.isBot && h.alive).length;
+      botsAliveEl.textContent = botsAlive;
+      statusEl.textContent = player && player.alive ? "Spieler lebt" : (observing ? "Beobachten" : "Spieler tot");
+    }
+
+    function resize(){
+      canvas.width = innerWidth;
+      canvas.height = innerHeight;
+      world.w = canvas.width;
+      world.h = canvas.height;
+      layoutArena();
+      if (!running) placeActors();
+    }
+
+    function layoutArena(){
+      const size = Math.min(world.w, world.h) * 0.62;
+      const x = (world.w - size) / 2;
+      const y = (world.h - size) / 2;
+      world.arena = { x, y, w:size, h:size };
+
+      const blockSize = Math.max(42, size * 0.12);
+      const gapX = size * 0.28;
+      const gapY = size * 0.24;
+      const cx = x + size/2;
+      const cy = y + size/2;
+
+      const leftX = cx - gapX/2 - blockSize;
+      const rightX = cx + gapX/2;
+      const topY = cy - gapY/2 - blockSize;
+      const bottomY = cy + gapY/2;
+
+      world.blocks = [
+        {x:leftX, y:topY, w:blockSize, h:blockSize},
+        {x:rightX, y:topY, w:blockSize, h:blockSize},
+        {x:leftX, y:bottomY, w:blockSize, h:blockSize},
+        {x:rightX, y:bottomY, w:blockSize, h:blockSize}
+      ];
+    }
+
+    function placeActors(){
+      const a = world.arena;
+      const cx = a.x + a.w / 2;
+      const cy = a.y + a.h / 2;
+
+      player = makeActor(cx, cy, "#1ea7ff", false, "Du");
+      humans = [
+        player,
+        makeActor(cx - 80, cy - 110, "#ff9f1c", true, "Bot 1"),
+        makeActor(cx + 95, cy - 100, "#8d5cff", true, "Bot 2"),
+        makeActor(cx, cy + 120, "#2ec27e", true, "Bot 3")
+      ];
+      separateActors();
+    }
+
+    function startGame(){
+      running = true;
+      observing = false;
+      score = 0;
+      waveCount = 0;
+      spawnCooldown = 1.0;
+      currentWave = null;
+      layoutArena();
+      placeActors();
+      setUI();
+      overlay.style.display = "none";
+    }
+
+    function goToMenu(){
+      running = false;
+      observing = false;
+      currentWave = null;
+      showMenu();
+    }
+
+    function showMenu(){
+      overlay.style.display = "flex";
+      card.innerHTML = `
+        <h1>Wellen-Deckungsspiel Plus</h1>
+        <p>4 feste Blöcke mit <strong>mehr Abstand</strong>.</p>
+        <p>In jeder Runde sind <strong>3 Bots</strong> dabei.</p>
+        <p>Alle Kugeln haben kleine Hände und können sich <strong>wegschubsen</strong>.</p>
+        <div class="btnRow">
+          <button id="startBtn" type="button">Starten</button>
+        </div>
+      `;
+      wireMenuButtons();
+      setUI();
+    }
+
+    function showDeathChoice(){
+      overlay.style.display = "flex";
+      card.innerHTML = `
+        <h1>Du bist raus</h1>
+        <p>Punkte: <strong>${Math.floor(score)}</strong></p>
+        <p>Wellen geschafft: <strong>${waveCount}</strong></p>
+        <p>Du kannst jetzt <strong>beobachten</strong> oder zurück ins <strong>Menü</strong>.</p>
+        <div class="btnRow">
+          <button id="observeBtn" type="button">Beobachten</button>
+          <button id="menuBtn" type="button">Menü</button>
+        </div>
+      `;
+      const observeBtn = document.getElementById("observeBtn");
+      const menuBtn = document.getElementById("menuBtn");
+      const startObserve = () => {
+        observing = true;
+        overlay.style.display = "none";
+        setUI();
+      };
+      observeBtn.addEventListener("click", startObserve);
+      observeBtn.addEventListener("touchend", e => { e.preventDefault(); startObserve(); }, { passive:false });
+      menuBtn.addEventListener("click", goToMenu);
+      menuBtn.addEventListener("touchend", e => { e.preventDefault(); goToMenu(); }, { passive:false });
+    }
+
+    function wireMenuButtons(){
+      const btn = document.getElementById("startBtn");
+      btn.addEventListener("click", startGame);
+      btn.addEventListener("touchend", e => { e.preventDefault(); startGame(); }, { passive:false });
+    }
+
+    function pointerPos(e){
+      const p = e.touches ? e.touches[0] : e;
+      return { x:p.clientX, y:p.clientY };
+    }
+    function onPointerStart(e){
+      if (!running || observing || !player.alive) return;
+      const p = pointerPos(e);
+      touch.active = true;
+      touch.x = p.x;
+      touch.y = p.y;
+      touch.dx = 0;
+      touch.dy = 0;
+      e.preventDefault();
+    }
+    function onPointerMove(e){
+      if (!running || !touch.active || observing || !player.alive) return;
+      const p = pointerPos(e);
+      touch.dx = p.x - touch.x;
+      touch.dy = p.y - touch.y;
+      e.preventDefault();
+    }
+    function onPointerEnd(){
+      touch.active = false;
+      touch.dx = 0;
+      touch.dy = 0;
+    }
+
+    canvas.addEventListener("mousedown", onPointerStart);
+    window.addEventListener("mousemove", onPointerMove);
+    window.addEventListener("mouseup", onPointerEnd);
+    canvas.addEventListener("touchstart", onPointerStart, { passive:false });
+    window.addEventListener("touchmove", onPointerMove, { passive:false });
+    window.addEventListener("touchend", onPointerEnd);
+
+    function clampActor(a){
+      const ar = world.arena;
+      a.x = Math.max(ar.x + a.r, Math.min(ar.x + ar.w - a.r, a.x));
+      a.y = Math.max(ar.y + a.r, Math.min(ar.y + ar.h - a.r, a.y));
+    }
+
+    function circleRectOverlap(cx, cy, cr, r){
+      const nx = Math.max(r.x, Math.min(cx, r.x + r.w));
+      const ny = Math.max(r.y, Math.min(cy, r.y + r.h));
+      const dx = cx - nx;
+      const dy = cy - ny;
+      return dx*dx + dy*dy < cr*cr;
+    }
+
+    function resolveBlockCollision(a){
+      for (const b of world.blocks){
+        if (!circleRectOverlap(a.x, a.y, a.r, b)) continue;
+
+        const left = Math.abs((a.x + a.r) - b.x);
+        const right = Math.abs((b.x + b.w) - (a.x - a.r));
+        const top = Math.abs((a.y + a.r) - b.y);
+        const bottom = Math.abs((b.y + b.h) - (a.y - a.r));
+        const m = Math.min(left, right, top, bottom);
+
+        if (m === left) a.x = b.x - a.r;
+        else if (m === right) a.x = b.x + b.w + a.r;
+        else if (m === top) a.y = b.y - a.r;
+        else a.y = b.y + b.h + a.r;
+      }
+      clampActor(a);
+    }
+
+    function separateActors(){
+      for (let n = 0; n < 5; n++){
+        for (let i = 0; i < humans.length; i++){
+          for (let j = i + 1; j < humans.length; j++){
+            const a = humans[i], b = humans[j];
+            if (!a.alive || !b.alive) continue;
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dist = Math.hypot(dx, dy) || 0.001;
+            const min = a.r + b.r + 6;
+            if (dist < min){
+              const overlap = (min - dist) / 2;
+              const nx = dx / dist;
+              const ny = dy / dist;
+              a.x -= nx * overlap;
+              a.y -= ny * overlap;
+              b.x += nx * overlap;
+              b.y += ny * overlap;
+            }
+          }
+        }
+      }
+      for (const a of humans) clampActor(a);
+    }
+
+    function pushActors(){
+      for (let i = 0; i < humans.length; i++){
+        for (let j = i + 1; j < humans.length; j++){
+          const a = humans[i], b = humans[j];
+          if (!a.alive || !b.alive) continue;
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.hypot(dx, dy) || 0.001;
+          const min = a.r + b.r + 8;
+          if (dist < min){
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const push = (min - dist) * 7;
+            a.vx -= nx * push;
+            a.vy -= ny * push;
+            b.vx += nx * push;
+            b.vy += ny * push;
+            a.pushFlash = 0.08;
+            b.pushFlash = 0.08;
+          }
+        }
+      }
+    }
+
+    function spawnWave(){
+      const dir = Math.floor(Math.random() * 4); // 0 L->R, 1 R->L, 2 T->B, 3 B->T
+      const a = world.arena;
+      const speed = Math.min(420, 140 + waveCount * 14);
+      const thickness = Math.max(70, a.w * 0.12);
+      const wave = { dir, speed, thickness, checked:false };
+
+      if (dir === 0) wave.front = a.x - thickness;
+      else if (dir === 1) wave.front = a.x + a.w + thickness;
+      else if (dir === 2) wave.front = a.y - thickness;
+      else wave.front = a.y + a.h + thickness;
+
+      currentWave = wave;
+      waveCount += 1;
+      setUI();
+    }
+
+    function waveReachedActor(actor){
+      const w = currentWave;
+      if (!w) return false;
+      if (w.dir === 0) return w.front >= actor.x - actor.r;
+      if (w.dir === 1) return w.front <= actor.x + actor.r;
+      if (w.dir === 2) return w.front >= actor.y - actor.r;
+      return w.front <= actor.y + actor.r;
+    }
+
+    function actorSafe(actor){
+      const w = currentWave;
+      if (!w) return false;
+      for (const b of world.blocks){
+        if (w.dir === 0){
+          if (w.front >= b.x && actor.x >= b.x + b.w && actor.y >= b.y && actor.y <= b.y + b.h) return true;
+        } else if (w.dir === 1){
+          if (w.front <= b.x + b.w && actor.x <= b.x && actor.y >= b.y && actor.y <= b.y + b.h) return true;
+        } else if (w.dir === 2){
+          if (w.front >= b.y && actor.y >= b.y + b.h && actor.x >= b.x && actor.x <= b.x + b.w) return true;
+        } else {
+          if (w.front <= b.y + b.h && actor.y <= b.y && actor.x >= b.x && actor.x <= b.x + b.w) return true;
+        }
+      }
+      return false;
+    }
+
+    function killActor(actor){
+      actor.alive = false;
+      actor.vx = 0;
+      actor.vy = 0;
+      if (!actor.isBot){
+        observing = false;
+        showDeathChoice();
+      }
+    }
+
+    function updateWave(dt){
+      if (!currentWave) return;
+      const w = currentWave;
+      if (w.dir === 0 || w.dir === 2) w.front += w.speed * dt;
+      else w.front -= w.speed * dt;
+
+      for (const actor of humans){
+        if (!actor.alive) continue;
+        if (waveReachedActor(actor)){
+          if (!actorSafe(actor)) killActor(actor);
+        }
+      }
+
+      const a = world.arena;
+      const done =
+        (w.dir === 0 && w.front > a.x + a.w + 10) ||
+        (w.dir === 1 && w.front < a.x - 10) ||
+        (w.dir === 2 && w.front > a.y + a.h + 10) ||
+        (w.dir === 3 && w.front < a.y - 10);
+
+      if (done) currentWave = null;
+    }
+
+    function updateBots(dt){
+      const targetWave = currentWave;
+      for (const bot of humans.filter(h => h.isBot && h.alive)){
+        let tx = bot.x, ty = bot.y;
+
+        if (targetWave){
+          const safeSpots = [];
+          for (const b of world.blocks){
+            if (targetWave.dir === 0) safeSpots.push({ x: b.x + b.w + 28, y: b.y + b.h / 2 });
+            if (targetWave.dir === 1) safeSpots.push({ x: b.x - 28, y: b.y + b.h / 2 });
+            if (targetWave.dir === 2) safeSpots.push({ x: b.x + b.w / 2, y: b.y + b.h + 28 });
+            if (targetWave.dir === 3) safeSpots.push({ x: b.x + b.w / 2, y: b.y - 28 });
+          }
+          safeSpots.sort((a, b) => Math.hypot(bot.x - a.x, bot.y - a.y) - Math.hypot(bot.x - b.x, bot.y - b.y));
+          tx = safeSpots[0].x;
+          ty = safeSpots[0].y;
+        } else {
+          const centerX = world.arena.x + world.arena.w / 2;
+          const centerY = world.arena.y + world.arena.h / 2;
+          tx = centerX + Math.sin(performance.now() * 0.001 + bot.x * 0.01) * 35;
+          ty = centerY + Math.cos(performance.now() * 0.0012 + bot.y * 0.01) * 35;
+        }
+
+        const dx = tx - bot.x;
+        const dy = ty - bot.y;
+        const len = Math.hypot(dx, dy);
+        if (len > 1){
+          bot.vx += (dx / len) * bot.speed * dt * 2.3;
+          bot.vy += (dy / len) * bot.speed * dt * 2.3;
+        }
+      }
+    }
+
+    function updatePlayer(dt){
+      if (!player.alive || observing) return;
+      let mx = 0, my = 0;
+      if (keys["w"] || keys["arrowup"]) my -= 1;
+      if (keys["s"] || keys["arrowdown"]) my += 1;
+      if (keys["a"] || keys["arrowleft"]) mx -= 1;
+      if (keys["d"] || keys["arrowright"]) mx += 1;
+      if (touch.active){
+        mx += Math.max(-1, Math.min(1, touch.dx / 45));
+        my += Math.max(-1, Math.min(1, touch.dy / 45));
+      }
+
+      const len = Math.hypot(mx, my);
+      if (len > 0){
+        player.vx += (mx / len) * player.speed * dt * 2.6;
+        player.vy += (my / len) * player.speed * dt * 2.6;
+      }
+    }
+
+    function updateActors(dt){
+      updatePlayer(dt);
+      updateBots(dt);
+      pushActors();
+
+      for (const a of humans){
+        if (!a.alive) continue;
+        a.pushFlash = Math.max(0, a.pushFlash - dt);
+        a.x += a.vx * dt;
+        a.y += a.vy * dt;
+        a.vx *= 0.84;
+        a.vy *= 0.84;
+        resolveBlockCollision(a);
+      }
+      separateActors();
+    }
+
+    function update(dt){
+      if (!running) return;
+
+      if (player.alive) score += dt * 10;
+      updateActors(dt);
+
+      if (!currentWave){
+        spawnCooldown -= dt;
+        if (spawnCooldown <= 0){
+          spawnWave();
+          spawnCooldown = Math.max(1.05, 2.15 - waveCount * 0.05);
+        }
+      } else {
+        updateWave(dt);
+      }
+
+      setUI();
+    }
+
+    function drawArena(){
+      const a = world.arena;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, world.w, world.h);
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(a.x, a.y, a.w, a.h);
+    }
+
+    function drawWave(){
+      if (!currentWave) return;
+      const a = world.arena;
+      const w = currentWave;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(a.x, a.y, a.w, a.h);
+      ctx.clip();
+      ctx.fillStyle = "rgba(220,30,30,0.82)";
+
+      if (w.dir === 0){
+        ctx.fillRect(a.x, a.y, Math.max(0, w.front - a.x), a.h);
+        for (const b of world.blocks){
+          if (w.front >= b.x) ctx.clearRect(b.x, b.y, a.x + a.w - b.x, b.h);
+        }
+      } else if (w.dir === 1){
+        ctx.fillRect(w.front, a.y, Math.max(0, a.x + a.w - w.front), a.h);
+        for (const b of world.blocks){
+          if (w.front <= b.x + b.w) ctx.clearRect(a.x, b.y, b.x + b.w - a.x, b.h);
+        }
+      } else if (w.dir === 2){
+        ctx.fillRect(a.x, a.y, a.w, Math.max(0, w.front - a.y));
+        for (const b of world.blocks){
+          if (w.front >= b.y) ctx.clearRect(b.x, b.y, b.w, a.y + a.h - b.y);
+        }
+      } else {
+        ctx.fillRect(a.x, w.front, a.w, Math.max(0, a.y + a.h - w.front));
+        for (const b of world.blocks){
+          if (w.front <= b.y + b.h) ctx.clearRect(b.x, a.y, b.w, b.y + b.h - a.y);
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawBlocks(){
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 3;
+      for (const b of world.blocks){
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.strokeRect(b.x, b.y, b.w, b.h);
+      }
+    }
+
+    function drawHands(a){
+      const offset = a.r + 6;
+      ctx.fillStyle = a.color;
+      ctx.beginPath();
+      ctx.arc(a.x - offset, a.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(a.x + offset, a.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(a.x - a.r, a.y);
+      ctx.lineTo(a.x - offset, a.y);
+      ctx.moveTo(a.x + a.r, a.y);
+      ctx.lineTo(a.x + offset, a.y);
+      ctx.stroke();
+    }
+
+    function drawActors(){
+      for (const a of humans){
+        if (!a.alive) continue;
+        drawHands(a);
+        ctx.save();
+        if (a.pushFlash > 0) {
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = "#000";
+        }
+        ctx.fillStyle = a.color;
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#222";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = "#111";
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(a.name, a.x, a.y - a.r - 10);
+      }
+    }
+
+    function drawTouchGuide(){
+      if (!touch.active || observing || !player.alive) return;
+      ctx.save();
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(touch.x, touch.y, 34, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath();
+      ctx.arc(touch.x + Math.max(-28, Math.min(28, touch.dx)), touch.y + Math.max(-28, Math.min(28, touch.dy)), 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function draw(){
+      drawArena();
+      drawWave();
+      drawBlocks();
+      drawActors();
+      drawTouchGuide();
+    }
+
+    let last = performance.now();
+    function loop(now){
+      const dt = Math.min(0.033, (now - last) / 1000);
+      last = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    resize();
+    placeActors();
+    wireMenuButtons();
+    setUI();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
