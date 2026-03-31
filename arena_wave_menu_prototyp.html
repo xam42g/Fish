@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Arena Wave – Menü Prototyp</title>
+  <style>
+    :root{
+      --bg:#071019;
+      --panel:#122235;
+      --panel-2:#1a3048;
+      --text:#f2f5f8;
+      --muted:#b9c6d6;
+      --accent:#29b6ff;
+      --accent-2:#70d6ff;
+      --danger:#ff5d55;
+      --gold:#f0de70;
+      --wood:#b96e27;
+      --wood-dark:#8d4f1b;
+      --metal:#e8eff2;
+      --metal-dark:#8ea1ac;
+      --tile-a:#efad7a;
+      --tile-b:#d69589;
+      --block-top:#857087;
+      --block-side:#54445e;
+      --shadow:rgba(0,0,0,.28);
+      --black:#07090c;
+    }
+    html,body{
+      margin:0;
+      height:100%;
+      overflow:hidden;
+      background:#000;
+      font-family:Arial,Helvetica,sans-serif;
+      color:var(--text);
+      touch-action:none;
+      -webkit-user-select:none;
+      user-select:none;
+    }
+    canvas{display:block;width:100vw;height:100vh}
+    #screen{
+      position:fixed;
+      inset:0;
+      z-index:20;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      background:linear-gradient(rgba(5,10,18,.74),rgba(5,10,18,.78));
+    }
+    .card{
+      width:min(92vw,720px);
+      background:linear-gradient(180deg, rgba(22,38,58,.97), rgba(15,28,44,.98));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:24px;
+      padding:26px;
+      box-shadow:0 30px 90px rgba(0,0,0,.45);
+    }
+    h1,h2,h3,p{margin:0}
+    .title{
+      font-size:38px;
+      margin-bottom:10px;
+      letter-spacing:.3px;
+    }
+    .subtitle{
+      color:var(--muted);
+      line-height:1.45;
+      margin-bottom:18px;
+      font-size:17px;
+    }
+    .panel{
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:18px;
+      padding:16px;
+      margin-top:14px;
+    }
+    .row{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+    .btn{
+      appearance:none;
+      -webkit-appearance:none;
+      border:none;
+      border-radius:16px;
+      padding:14px 18px;
+      font-size:17px;
+      font-weight:700;
+      cursor:pointer;
+      color:#0f1720;
+      background:#fff;
+      min-width:160px;
+      touch-action:manipulation;
+    }
+    .btn.alt{
+      background:#21364f;
+      color:var(--text);
+    }
+    .btn.primary{
+      background:linear-gradient(180deg,var(--accent-2),var(--accent));
+      color:#082033;
+    }
+    .btn.danger{
+      background:linear-gradient(180deg,#ff948d,var(--danger));
+      color:#2c0705;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:14px;
+      margin-top:14px;
+    }
+    .choice{
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:18px;
+      padding:16px;
+    }
+    .choice h3{margin-bottom:8px;font-size:20px}
+    .choice p{color:var(--muted);line-height:1.45;font-size:15px}
+    #hud{
+      position:fixed;
+      top:max(14px, env(safe-area-inset-top));
+      left:max(14px, env(safe-area-inset-left));
+      z-index:10;
+      background:rgba(15,25,38,.84);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      padding:12px 14px;
+      min-width:210px;
+      backdrop-filter:blur(8px);
+      display:none;
+    }
+    #hud .small{color:var(--muted);font-size:13px;margin-top:3px}
+    #toast{
+      position:fixed;
+      left:50%;
+      top:max(18px, env(safe-area-inset-top));
+      transform:translateX(-50%);
+      z-index:15;
+      background:rgba(8,13,20,.88);
+      border:1px solid rgba(255,255,255,.08);
+      color:#fff;
+      padding:12px 16px;
+      border-radius:999px;
+      font-weight:700;
+      display:none;
+      white-space:nowrap;
+      box-shadow:0 18px 30px rgba(0,0,0,.35);
+    }
+    .muted{color:var(--muted)}
+    .list{margin-top:8px;color:var(--muted);line-height:1.5}
+    .pill{
+      display:inline-block;
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      font-weight:700;
+      background:rgba(255,255,255,.08);
+      color:#dbe6f5;
+      margin-right:6px;
+      margin-bottom:6px;
+    }
+    @media (max-width:700px){
+      .title{font-size:32px}
+      .subtitle{font-size:16px}
+      .btn{width:100%}
+      .row{flex-direction:column}
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="hud"></div>
+  <div id="toast"></div>
+  <div id="screen"></div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const screen = document.getElementById("screen");
+const hud = document.getElementById("hud");
+const toast = document.getElementById("toast");
+const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+const TAU = Math.PI * 2;
+
+const keys = {};
+addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+const touch = {active:false, sx:0, sy:0, dx:0, dy:0};
+
+const state = {
+  screen:"menu",
+  mode:"bots", // bots | queue
+  fillBots:true,
+  queueTimer:0,
+  round:1,
+  gameStarted:false,
+  gameRunning:false,
+  observing:false,
+  introTimer:0,
+  phase:"idle", // intro wait attack recover
+  phaseTime:0,
+  side:"left",
+  board:null,
+  player:null,
+  actors:[],
+  botCount:3,
+  toastTimer:0
+};
+
+function showToast(text, seconds=1.4){
+  toast.textContent = text;
+  toast.style.display = "block";
+  state.toastTimer = seconds;
+}
+
+function renderScreen(html){
+  screen.innerHTML = html;
+  screen.style.display = "flex";
+}
+
+function bindButton(id, fn){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener("click", fn);
+  el.addEventListener("touchend", e => { e.preventDefault(); fn(); }, {passive:false});
+}
+
+function renderMainMenu(){
+  state.screen = "menu";
+  state.gameRunning = false;
+  state.observing = false;
+  hud.style.display = "none";
+  renderScreen(`
+    <div class="card">
+      <h1 class="title">Arena Wave</h1>
+      <p class="subtitle">
+        Jetzt mit richtigem Menü, ruhigerem Start und schnellerem Movement.
+        Ziel bleibt: Die Stämme kommen aus einer Richtung, und nur Deckung hinter den Blöcken rettet dich.
+      </p>
+
+      <div class="grid">
+        <div class="choice">
+          <h3>Online-Spiel</h3>
+          <p>Suche nach Spielern. Wenn nicht genug da sind, kann das Match automatisch mit Bots aufgefüllt werden.</p>
+          <div class="list">
+            <span class="pill">Matchmaking</span>
+            <span class="pill">Bots auffüllen</span>
+            <span class="pill">Lobby Flow</span>
+          </div>
+          <div class="row">
+            <button class="btn primary" id="queueBtn">Spiel suchen</button>
+          </div>
+        </div>
+
+        <div class="choice">
+          <h3>Sofort spielen</h3>
+          <p>Direkt eine Runde starten. Keine Suche, keine Wartezeit. Perfekt zum Testen der Mechanik und Grafik.</p>
+          <div class="list">
+            <span class="pill">1 Spieler</span>
+            <span class="pill">3 Bots</span>
+            <span class="pill">Schnellstart</span>
+          </div>
+          <div class="row">
+            <button class="btn alt" id="soloBtn">Mit Bots starten</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-bottom:8px">Was ich hier verbessert habe</h3>
+        <div class="muted" style="line-height:1.5">
+          - Du wirst nicht mehr sofort hart ins Spiel geworfen.<br>
+          - Erst kommt eine Einblendung, dann ein sanfter Start.<br>
+          - Die Figuren laufen schneller und flüssiger.<br>
+          - Es gibt jetzt einen echten Menü-/Lobby-Flow.
+        </div>
+      </div>
+    </div>
+  `);
+  bindButton("queueBtn", renderQueueMenu);
+  bindButton("soloBtn", () => beginMatch("bots"));
+}
+
+function renderQueueMenu(){
+  state.screen = "queue";
+  renderScreen(`
+    <div class="card">
+      <h1 class="title">Spielersuche</h1>
+      <p class="subtitle">
+        Für dieses HTML ist das ein Matchmaking-Prototyp ohne echten Server.
+        Der Flow ist aber so gebaut, wie es später für ein Online-Spiel gedacht ist.
+      </p>
+
+      <div class="panel">
+        <h3 style="margin-bottom:8px">Lobby-Einstellungen</h3>
+        <div class="muted" style="line-height:1.55">
+          Gesucht werden insgesamt 4 Spieler. Wenn nicht genug Spieler gefunden werden,
+          kann automatisch mit Bots aufgefüllt werden.
+        </div>
+        <div class="row">
+          <button class="btn primary" id="findRealBtn">Spiel suchen + Bots auffüllen</button>
+          <button class="btn alt" id="findBotsOnlyBtn">Nur mit Bots starten</button>
+          <button class="btn alt" id="backBtn">Zurück</button>
+        </div>
+      </div>
+    </div>
+  `);
+  bindButton("findRealBtn", () => startQueue(true));
+  bindButton("findBotsOnlyBtn", () => beginMatch("bots"));
+  bindButton("backBtn", renderMainMenu);
+}
+
+function startQueue(fillBots){
+  state.screen = "queueing";
+  state.fillBots = fillBots;
+  state.queueTimer = 0;
+  renderScreen(`
+    <div class="card">
+      <h1 class="title">Suche läuft …</h1>
+      <p class="subtitle">Spieler werden gesucht. Wenn zu wenige da sind, wird mit Bots aufgefüllt.</p>
+      <div class="panel">
+        <div id="queueStatus" class="muted" style="font-size:18px; line-height:1.6">
+          Suche nach Spielern …
+        </div>
+        <div class="row">
+          <button class="btn alt" id="cancelQueueBtn">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+  `);
+  bindButton("cancelQueueBtn", renderQueueMenu);
+}
+
+function finishQueue(){
+  beginMatch("queue");
+}
+
+function makeActor(kind, color, crown){
+  return {
+    kind, color, crown,
+    x:0, y:0, vx:0, vy:0, r:18,
+    alive:true,
+    facing:-Math.PI/2,
+    handsKick:0,
+    trail:[]
+  };
+}
+
+function resize(){
+  canvas.width = Math.floor(innerWidth * DPR);
+  canvas.height = Math.floor(innerHeight * DPR);
+  canvas.style.width = innerWidth + "px";
+  canvas.style.height = innerHeight + "px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  layoutBoard();
+}
+addEventListener("resize", resize);
+
+function layoutBoard(){
+  const size = Math.min(innerWidth * 0.58, innerHeight * 0.76, 620);
+  const x = (innerWidth - size) / 2;
+  const y = (innerHeight - size) / 2;
+  const wall = size * 0.08;
+  const pad = size * 0.05;
+  const inner = size - wall * 2 - pad * 2;
+  const tile = inner / 4;
+
+  state.board = {
+    x,y,size,wall,pad,inner,tile,
+    innerX:x+wall+pad,
+    innerY:y+wall+pad
+  };
+  state.board.blocks = [
+    tileRect(0,0),
+    tileRect(2,1),
+    tileRect(3,3)
+  ];
+  if(!state.gameStarted) return;
+  seedActors();
+}
+
+function tileRect(c,r){
+  const b = state.board;
+  const p = b.tile * 0.05;
+  return {x:b.innerX+c*b.tile+p, y:b.innerY+r*b.tile+p, w:b.tile-p*2, h:b.tile-p*2, c,r};
+}
+function tileCenter(c,r){
+  const b = state.board;
+  return {x:b.innerX+(c+0.5)*b.tile, y:b.innerY+(r+0.5)*b.tile};
+}
+
+function seedActors(){
+  const existingPlayer = state.player && state.player.alive ? state.player : null;
+  const actors = [];
+  const player = makeActor("player", "#13b7ff", true);
+  let p = tileCenter(1,2);
+  player.x = p.x; player.y = p.y; player.facing = -Math.PI/2;
+  actors.push(player);
+  state.player = player;
+
+  const spawns = [
+    tileCenter(2,2),
+    tileCenter(3,1),
+    tileCenter(1,3)
+  ];
+  const colors = ["#ff5b56","#f0a020","#5fd28b"];
+  for(let i=0;i<state.botCount;i++){
+    const bot = makeActor("bot", colors[i % colors.length], false);
+    bot.x = spawns[i].x;
+    bot.y = spawns[i].y;
+    bot.facing = Math.PI;
+    actors.push(bot);
+  }
+  state.actors = actors;
+}
+
+function beginMatch(mode){
+  state.mode = mode;
+  state.round = 1;
+  state.gameStarted = true;
+  state.gameRunning = true;
+  state.observing = false;
+  state.side = randomSide();
+  state.phase = "intro";
+  state.phaseTime = 2.6;
+  state.introTimer = 0;
+  layoutBoard();
+  hud.style.display = "block";
+  screen.style.display = "none";
+  if(mode === "queue"){
+    showToast("Lobby erstellt: 1 Spieler + 3 Bots", 1.8);
+  } else {
+    showToast("Runde startet", 1.2);
+  }
+}
+
+function randomSide(){
+  const arr = ["left","right","top","bottom"];
+  return arr[(Math.random() * arr.length) | 0];
+}
+
+function point(e){
+  const p = e.touches ? e.touches[0] : e;
+  return {x:p.clientX, y:p.clientY};
+}
+canvas.addEventListener("mousedown", e => {
+  if(!state.gameRunning || state.observing || !state.player.alive) return;
+  const p = point(e);
+  touch.active = true; touch.sx = p.x; touch.sy = p.y; touch.dx = 0; touch.dy = 0;
+  e.preventDefault();
+});
+window.addEventListener("mousemove", e => {
+  if(!touch.active) return;
+  const p = point(e);
+  touch.dx = p.x - touch.sx; touch.dy = p.y - touch.sy;
+});
+window.addEventListener("mouseup", () => { touch.active = false; touch.dx = 0; touch.dy = 0; });
+canvas.addEventListener("touchstart", e => {
+  if(!state.gameRunning || state.observing || !state.player.alive) return;
+  const p = point(e);
+  touch.active = true; touch.sx = p.x; touch.sy = p.y; touch.dx = 0; touch.dy = 0;
+  e.preventDefault();
+},{passive:false});
+window.addEventListener("touchmove", e => {
+  if(!touch.active) return;
+  const p = point(e);
+  touch.dx = p.x - touch.sx; touch.dy = p.y - touch.sy;
+  e.preventDefault();
+},{passive:false});
+window.addEventListener("touchend", () => { touch.active = false; touch.dx = 0; touch.dy = 0; });
+
+function clampActor(a){
+  const b = state.board;
+  a.x = Math.max(b.innerX+a.r, Math.min(b.innerX+b.inner-a.r, a.x));
+  a.y = Math.max(b.innerY+a.r, Math.min(b.innerY+b.inner-a.r, a.y));
+}
+function circleRect(ax,ay,ar,r){
+  const nx = Math.max(r.x, Math.min(ax, r.x+r.w));
+  const ny = Math.max(r.y, Math.min(ay, r.y+r.h));
+  const dx = ax-nx, dy = ay-ny;
+  return dx*dx + dy*dy < ar*ar;
+}
+function resolveBlocks(a){
+  for(const b of state.board.blocks){
+    if(!circleRect(a.x,a.y,a.r,b)) continue;
+    const left = Math.abs((a.x+a.r)-b.x);
+    const right = Math.abs((b.x+b.w)-(a.x-a.r));
+    const top = Math.abs((a.y+a.r)-b.y);
+    const bottom = Math.abs((b.y+b.h)-(a.y-a.r));
+    const m = Math.min(left,right,top,bottom);
+    if(m===left) a.x = b.x-a.r;
+    else if(m===right) a.x = b.x+b.w+a.r;
+    else if(m===top) a.y = b.y-a.r;
+    else a.y = b.y+b.h+a.r;
+  }
+  clampActor(a);
+}
+function pushActors(){
+  const alive = state.actors.filter(a => a.alive);
+  for(let i=0;i<alive.length;i++){
+    for(let j=i+1;j<alive.length;j++){
+      const a = alive[i], b = alive[j];
+      const dx = b.x-a.x, dy = b.y-a.y;
+      const d = Math.hypot(dx,dy) || 0.001;
+      const minD = a.r+b.r+8;
+      if(d < minD){
+        const nx = dx/d, ny = dy/d;
+        const ov = minD-d;
+        a.x -= nx*ov*0.5; a.y -= ny*ov*0.5;
+        b.x += nx*ov*0.5; b.y += ny*ov*0.5;
+        a.vx -= nx*ov*18; a.vy -= ny*ov*18;
+        b.vx += nx*ov*18; b.vy += ny*ov*18;
+        a.handsKick = 0.1; b.handsKick = 0.1;
+      }
+    }
+  }
+}
+function safeSpot(side,block){
+  const pad = state.board.tile * 0.30;
+  if(side==="left") return {x:block.x+block.w+pad, y:block.y+block.h*0.5};
+  if(side==="right") return {x:block.x-pad, y:block.y+block.h*0.5};
+  if(side==="top") return {x:block.x+block.w*0.5, y:block.y+block.h+pad};
+  return {x:block.x+block.w*0.5, y:block.y-pad};
+}
+function actorSafe(a){
+  for(const b of state.board.blocks){
+    if(state.side==="left" && a.x>=b.x+b.w && a.y>=b.y && a.y<=b.y+b.h) return true;
+    if(state.side==="right" && a.x<=b.x && a.y>=b.y && a.y<=b.y+b.h) return true;
+    if(state.side==="top" && a.y>=b.y+b.h && a.x>=b.x && a.x<=b.x+b.w) return true;
+    if(state.side==="bottom" && a.y<=b.y && a.x>=b.x && a.x<=b.x+b.w) return true;
+  }
+  return false;
+}
+function chooseBotTarget(bot){
+  const spots = state.board.blocks.map(b => safeSpot(state.side,b));
+  let best = spots[0], bestD = 1e9;
+  for(const s of spots){
+    const d = Math.hypot(bot.x-s.x, bot.y-s.y);
+    if(d < bestD){ bestD = d; best = s; }
+  }
+  return best;
+}
+function killActor(a){
+  a.alive = false;
+  a.vx = 0; a.vy = 0;
+  if(a.kind === "player"){
+    renderDeathMenu();
+  }
+}
+function renderDeathMenu(){
+  state.observing = false;
+  renderScreen(`
+    <div class="card">
+      <h1 class="title">Du bist raus</h1>
+      <p class="subtitle">Du kannst jetzt zuschauen oder zurück ins Menü gehen.</p>
+      <div class="panel">
+        <div class="muted" style="font-size:18px; line-height:1.6">
+          Runde <strong>${state.round}</strong> beendet.
+        </div>
+        <div class="row">
+          <button class="btn primary" id="observeBtn">Beobachten</button>
+          <button class="btn alt" id="backMenuBtn">Menü</button>
+        </div>
+      </div>
+    </div>
+  `);
+  bindButton("observeBtn", () => {
+    state.observing = true;
+    screen.style.display = "none";
+    showToast("Beobachter-Modus", 1.1);
+  });
+  bindButton("backMenuBtn", renderMainMenu);
+}
+
+function updateActors(dt){
+  const p = state.player;
+  if(p.alive && !state.observing){
+    let mx = 0, my = 0;
+    if(keys["w"]||keys["arrowup"]) my -= 1;
+    if(keys["s"]||keys["arrowdown"]) my += 1;
+    if(keys["a"]||keys["arrowleft"]) mx -= 1;
+    if(keys["d"]||keys["arrowright"]) mx += 1;
+    if(touch.active){
+      mx += Math.max(-1, Math.min(1, touch.dx/45));
+      my += Math.max(-1, Math.min(1, touch.dy/45));
+    }
+    const len = Math.hypot(mx,my);
+    if(len > 0){
+      p.facing = Math.atan2(my/len, mx/len);
+      p.vx += (mx/len) * 760 * dt;
+      p.vy += (my/len) * 760 * dt;
+    }
+  }
+
+  for(const a of state.actors){
+    if(!a.alive || a.kind !== "bot") continue;
+    const t = chooseBotTarget(a);
+    const dx = t.x-a.x, dy = t.y-a.y;
+    const len = Math.hypot(dx,dy);
+    if(len > 1){
+      a.facing = Math.atan2(dy/len, dx/len);
+      a.vx += (dx/len) * 620 * dt;
+      a.vy += (dy/len) * 620 * dt;
+    }
+  }
+
+  pushActors();
+
+  for(const a of state.actors){
+    if(!a.alive) continue;
+    a.handsKick = Math.max(0, a.handsKick-dt);
+    a.x += a.vx*dt;
+    a.y += a.vy*dt;
+    a.vx *= 0.82;
+    a.vy *= 0.82;
+    if(Math.hypot(a.vx,a.vy) > 8) a.facing = Math.atan2(a.vy,a.vx);
+    resolveBlocks(a);
+
+    a.trail.push({x:a.x, y:a.y, t:0.22});
+    if(a.trail.length > 7) a.trail.shift();
+    for(const tr of a.trail) tr.t -= dt;
+    a.trail = a.trail.filter(tr => tr.t > 0);
+  }
+}
+
+function updateQueueing(dt){
+  if(state.screen !== "queueing") return;
+  state.queueTimer += dt;
+  const el = document.getElementById("queueStatus");
+  if(!el) return;
+  if(state.queueTimer < 1.2){
+    el.innerHTML = "Suche nach Spielern …<br><strong>1 / 4 gefunden</strong>";
+  } else if(state.queueTimer < 2.2){
+    el.innerHTML = "Suche nach Spielern …<br><strong>2 / 4 gefunden</strong>";
+  } else if(state.queueTimer < 3.2){
+    el.innerHTML = "Nicht genug Spieler gefunden.<br><strong>Fülle mit Bots auf …</strong>";
+  } else {
+    finishQueue();
+  }
+}
+
+function updateGame(dt){
+  if(!state.gameRunning) return;
+
+  updateActors(dt);
+  state.phaseTime -= dt;
+
+  if(state.phase === "intro"){
+    if(state.phaseTime <= 0){
+      state.phase = "wait";
+      state.phaseTime = 1.45;
+      showToast("Such Deckung", 1.0);
+    }
+  } else if(state.phase === "wait"){
+    if(state.phaseTime <= 0){
+      state.phase = "attack";
+      state.phaseTime = 0.95;
+    }
+  } else if(state.phase === "attack"){
+    if(state.phaseTime <= 0.16){
+      for(const a of state.actors){
+        if(a.alive && !actorSafe(a)) killActor(a);
+      }
+    }
+    if(state.phaseTime <= 0){
+      state.phase = "recover";
+      state.phaseTime = 0.75;
+    }
+  } else if(state.phase === "recover"){
+    if(state.phaseTime <= 0){
+      state.round += 1;
+      state.side = randomSide();
+      state.phase = "wait";
+      state.phaseTime = 1.2;
+    }
+  }
+}
+
+function update(dt){
+  if(state.toastTimer > 0){
+    state.toastTimer -= dt;
+    if(state.toastTimer <= 0) toast.style.display = "none";
+  }
+  updateQueueing(dt);
+  updateGame(dt);
+  renderHud();
+}
+
+function renderHud(){
+  if(!state.gameRunning){
+    hud.style.display = "none";
+    return;
+  }
+  hud.style.display = "block";
+  const aliveBots = state.actors.filter(a => a.kind==="bot" && a.alive).length;
+  const playerState = state.player.alive ? (state.observing ? "Beobachten" : "Aktiv") : "Raus";
+  const phaseText = state.phase === "intro" ? "Start" :
+                    state.phase === "wait" ? "Warnung" :
+                    state.phase === "attack" ? "Angriff" : "Pause";
+  hud.innerHTML = `
+    <div><strong>Runde:</strong> ${state.round}</div>
+    <div><strong>Status:</strong> ${playerState}</div>
+    <div><strong>Bots:</strong> ${aliveBots}</div>
+    <div><strong>Phase:</strong> ${phaseText}</div>
+    <div class="small">WASD / Pfeile / Touch ziehen</div>
+  `;
+}
+
+function drawBackground(){
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0,0,innerWidth,innerHeight);
+}
+
+function rr(x,y,w,h,r,fill=true,stroke=false){
+  r = Math.min(r,w*.5,h*.5);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+  if(fill) ctx.fill();
+  if(stroke) ctx.stroke();
+}
+
+function drawBoard(){
+  const b = state.board;
+  const off = b.size * 0.03;
+
+  ctx.fillStyle = "#223a55";
+  ctx.fillRect(b.x+off, b.y+off, b.size, b.size);
+
+  ctx.fillStyle = "#3c6484";
+  ctx.fillRect(b.x, b.y, b.size, b.size);
+
+  ctx.fillStyle = "#000";
+  ctx.fillRect(b.x+b.wall, b.y+b.wall, b.size-b.wall*2, b.size-b.wall*2);
+
+  for(let r=0;r<4;r++){
+    for(let c=0;c<4;c++){
+      const x = b.innerX + c*b.tile;
+      const y = b.innerY + r*b.tile;
+      ctx.fillStyle = ((r+c)%2===0) ? "#f3ad7b" : "#d79288";
+      ctx.fillRect(x,y,b.tile,b.tile);
+      ctx.fillStyle = "rgba(255,255,255,.08)";
+      ctx.fillRect(x+b.tile*.12,y+b.tile*.12,b.tile*.6,b.tile*.6);
+      ctx.fillStyle = "rgba(0,0,0,.08)";
+      ctx.beginPath();
+      ctx.moveTo(x+b.tile*.72,y+b.tile*.1);
+      ctx.lineTo(x+b.tile*.9,y+b.tile*.1);
+      ctx.lineTo(x+b.tile*.9,y+b.tile*.28);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+function drawBlock(rect){
+  const sh = state.board.tile * 0.13;
+  ctx.fillStyle = "rgba(0,0,0,.25)";
+  rr(rect.x+sh,rect.y+sh,rect.w,rect.h,rect.w*.2,true,false);
+  ctx.fillStyle = "#4d3d57";
+  rr(rect.x,rect.y+rect.h*.12,rect.w,rect.h*.88,rect.w*.2,true,false);
+  ctx.fillStyle = "#7d687f";
+  rr(rect.x,rect.y,rect.w,rect.h*.9,rect.w*.2,true,false);
+}
+function drawBlocks(){
+  for(const b of state.board.blocks) drawBlock(b);
+}
+
+function drawTrail(a){
+  for(const tr of a.trail){
+    const alpha = Math.max(0,tr.t/.22) * .18;
+    ctx.fillStyle = "rgba(130,95,70,"+alpha+")";
+    ctx.save();
+    ctx.translate(tr.x,tr.y);
+    ctx.rotate(a.facing + Math.PI/4);
+    ctx.fillRect(-5,-5,10,10);
+    ctx.restore();
+  }
+}
+function drawCrown(x,y){
+  ctx.fillStyle = "#efe16a";
+  ctx.strokeStyle = "#0d0d11";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x-11,y+12);
+  ctx.lineTo(x-8,y-1);
+  ctx.lineTo(x,y+6);
+  ctx.lineTo(x+8,y-4);
+  ctx.lineTo(x+16,y+12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+function drawActor(a){
+  if(!a.alive) return;
+  drawTrail(a);
+
+  const x=a.x,y=a.y,r=a.r;
+  const dx=Math.cos(a.facing), dy=Math.sin(a.facing);
+  const px=-dy, py=dx;
+  const kick=a.handsKick>0?5:0;
+
+  ctx.fillStyle="rgba(0,0,0,.24)";
+  ctx.beginPath();
+  ctx.ellipse(x+2,y+r*.96,r*.92,r*.5,0,0,TAU);
+  ctx.fill();
+
+  const armBaseX=x+dx*(r*.52), armBaseY=y+dy*(r*.52);
+  const handDist=r*.98+kick, spread=r*.5;
+  const h1x=x+dx*handDist+px*spread, h1y=y+dy*handDist+py*spread;
+  const h2x=x+dx*handDist-px*spread, h2y=y+dy*handDist-py*spread;
+
+  ctx.strokeStyle="#0c0c10";
+  ctx.lineWidth=4;
+  ctx.lineCap="round";
+  ctx.beginPath();
+  ctx.moveTo(armBaseX+px*4,armBaseY+py*4); ctx.lineTo(h1x,h1y);
+  ctx.moveTo(armBaseX-px*4,armBaseY-py*4); ctx.lineTo(h2x,h2y);
+  ctx.stroke();
+
+  ctx.fillStyle=a.color;
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,TAU);
+  ctx.fill();
+  ctx.lineWidth=5;
+  ctx.strokeStyle="#0b0b0f";
+  ctx.stroke();
+
+  ctx.fillStyle="#0c0c10";
+  ctx.beginPath();
+  ctx.ellipse(x+dx*3,y+dy*3,r*.58,r*.43,a.facing,0,TAU);
+  ctx.fill();
+
+  ctx.fillStyle="#fff";
+  ctx.beginPath(); ctx.arc(x+dx*7-px*2,y+dy*7-py*2,2.7,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+dx*7+px*2,y+dy*7+py*2,2.7,0,TAU); ctx.fill();
+
+  for(const hand of [[h1x,h1y],[h2x,h2y]]){
+    ctx.fillStyle=a.color;
+    ctx.beginPath();
+    ctx.arc(hand[0],hand[1],r*.34,0,TAU);
+    ctx.fill();
+    ctx.lineWidth=3;
+    ctx.strokeStyle="#0c0c10";
+    ctx.stroke();
+  }
+
+  if(a.crown) drawCrown(x-1,y-r-7);
+}
+function drawActors(){
+  for(const a of state.actors) drawActor(a);
+}
+
+function logProgress(){
+  if(state.phase !== "attack") return 0;
+  return 1 - (state.phaseTime / 0.95);
+}
+function drawLog(side,lane,active){
+  const b=state.board, t=b.tile;
+  const bodyLen=t*1.22, tip=t*.29;
+  const p=active?logProgress()*(t*1.34):0;
+  let x,y,w,h;
+  if(side==="left"||side==="right"){
+    h=t*.68; w=bodyLen;
+    y=b.innerY+lane*t+t*.16;
+    x=side==="left"?b.x-w*.18+p:b.x+b.size-w*.82-p;
+  }else{
+    w=t*.68; h=bodyLen;
+    x=b.innerX+lane*t+t*.16;
+    y=side==="top"?b.y-h*.18+p:b.y+b.size-h*.82-p;
+  }
+
+  ctx.fillStyle="rgba(0,0,0,.28)";
+  ctx.fillRect(x+8,y+9,w,h);
+
+  ctx.fillStyle="#8d4b1d";
+  rr(x,y,w,h,9,true,false);
+
+  ctx.fillStyle="#b76726";
+  if(side==="left"||side==="right") rr(x+8,y+2,w-12,h-4,7,true,false);
+  else rr(x+2,y+8,w-4,h-12,7,true,false);
+
+  ctx.strokeStyle="rgba(133,72,28,.38)";
+  ctx.lineWidth=7;
+  ctx.lineCap="round";
+  if(side==="left"||side==="right"){
+    for(const pr of [.18,.61]){
+      const xx=x+w*pr;
+      ctx.beginPath(); ctx.moveTo(xx,y+h*.26); ctx.lineTo(xx+w*.06,y+h*.26); ctx.stroke();
+    }
+    ctx.fillStyle="rgba(132,71,26,.4)";
+    for(const pr of [.22,.73]){
+      ctx.beginPath(); ctx.arc(x+w*pr,y+h*.63,6,0,TAU); ctx.fill();
+    }
+  }else{
+    for(const pr of [.18,.61]){
+      const yy=y+h*pr;
+      ctx.beginPath(); ctx.moveTo(x+w*.28,yy); ctx.lineTo(x+w*.28,yy+h*.06); ctx.stroke();
+    }
+    ctx.fillStyle="rgba(132,71,26,.4)";
+    for(const pr of [.22,.73]){
+      ctx.beginPath(); ctx.arc(x+w*.63,y+h*pr,6,0,TAU); ctx.fill();
+    }
+  }
+
+  ctx.fillStyle="#1f232a";
+  if(side==="left"||side==="right"){
+    const rx=side==="left"?x+w-12:x;
+    rr(rx,y-2,12,h+4,4,true,false);
+  }else{
+    const ry=side==="top"?y+h-12:y;
+    rr(x-2,ry,w+4,12,4,true,false);
+  }
+
+  ctx.fillStyle="#eef5f5";
+  ctx.strokeStyle="#9baab2";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  if(side==="left"){
+    ctx.moveTo(x+w+tip,y+h*.5); ctx.lineTo(x+w,y+h*.08); ctx.lineTo(x+w,y+h*.92);
+  }else if(side==="right"){
+    ctx.moveTo(x-tip,y+h*.5); ctx.lineTo(x,y+h*.08); ctx.lineTo(x,y+h*.92);
+  }else if(side==="top"){
+    ctx.moveTo(x+w*.5,y+h+tip); ctx.lineTo(x+w*.08,y+h); ctx.lineTo(x+w*.92,y+h);
+  }else{
+    ctx.moveTo(x+w*.5,y-tip); ctx.lineTo(x+w*.08,y); ctx.lineTo(x+w*.92,y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+function drawLogs(){
+  for(let i=0;i<4;i++){
+    drawLog("left",i,state.side==="left");
+    drawLog("right",i,state.side==="right");
+    drawLog("top",i,state.side==="top");
+    drawLog("bottom",i,state.side==="bottom");
+  }
+}
+function drawWarning(){
+  if(state.phase !== "wait") return;
+  const b=state.board;
+  const pulse=.45+.55*Math.sin(performance.now()*0.013);
+  ctx.save();
+  ctx.globalAlpha=.85*pulse;
+  ctx.fillStyle="#ff312f";
+  if(state.side==="left") ctx.fillRect(b.x+b.wall*.18,b.innerY,b.wall*.48,b.inner);
+  else if(state.side==="right") ctx.fillRect(b.x+b.size-b.wall*.66,b.innerY,b.wall*.48,b.inner);
+  else if(state.side==="top") ctx.fillRect(b.innerX,b.y+b.wall*.18,b.inner,b.wall*.48);
+  else ctx.fillRect(b.innerX,b.y+b.size-b.wall*.66,b.inner,b.wall*.48);
+  ctx.restore();
+}
+function drawBubbles(){
+  const b=state.board;
+  const r=b.size*.1;
+  const lx=b.x-r*.56, cy=b.y+b.size*.54, rx=b.x+b.size+r*.56;
+  ctx.fillStyle="#f5f5f2";
+  ctx.beginPath(); ctx.arc(lx,cy,r,0,TAU); ctx.fill();
+  ctx.fillStyle="#1db8ff";
+  ctx.font="bold "+Math.floor(r*.42)+"px Arial";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.save(); ctx.translate(lx,cy); ctx.rotate(-Math.PI/2); ctx.fillText("2 • "+Math.max(1,state.round),0,0); ctx.restore();
+  ctx.fillStyle="#f5f5f2";
+  ctx.beginPath(); ctx.arc(rx,cy,r,0,TAU); ctx.fill();
+  ctx.fillStyle="#36363d";
+  ctx.save(); ctx.translate(rx,cy); ctx.rotate(Math.PI/2); ctx.font="bold "+Math.floor(r*.45)+"px Arial"; ctx.fillText("ENDE",0,0); ctx.restore();
+}
+function drawIntroText(){
+  if(!state.gameRunning) return;
+  if(state.phase === "intro"){
+    ctx.fillStyle="rgba(255,255,255,.96)";
+    ctx.font="bold 34px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("Runde startet …", innerWidth*.5, Math.max(48, state.board.y-28));
+  } else if(state.phase === "wait"){
+    ctx.fillStyle="rgba(255,255,255,.96)";
+    ctx.font="bold 30px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("Such Deckung", innerWidth*.5, Math.max(48, state.board.y-28));
+  }
+}
+function drawTouch(){
+  if(!touch.active || state.observing || !state.player.alive) return;
+  ctx.save();
+  ctx.globalAlpha=.22; ctx.fillStyle="#fff";
+  ctx.beginPath(); ctx.arc(touch.sx,touch.sy,34,0,TAU); ctx.fill();
+  ctx.globalAlpha=.34;
+  ctx.beginPath(); ctx.arc(touch.sx+Math.max(-28,Math.min(28,touch.dx)),touch.sy+Math.max(-28,Math.min(28,touch.dy)),20,0,TAU); ctx.fill();
+  ctx.restore();
+}
+function draw(){
+  drawBackground();
+  if(state.board){
+    drawBoard();
+    drawLogs();
+    drawWarning();
+    drawBlocks();
+    drawActors();
+    drawBubbles();
+    drawIntroText();
+    drawTouch();
+  }
+}
+
+let last = performance.now();
+function loop(now){
+  const dt = Math.min(.033, (now-last)/1000);
+  last = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize();
+renderMainMenu();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
