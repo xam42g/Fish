@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<title>Stack Style</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+canvas{display:block;width:100vw;height:100vh;touch-action:none}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  let DPR = 1, W = 0, H = 0, CW = 0, CH = 0;
+  function resize(){
+    DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    W = window.innerWidth;
+    H = window.innerHeight;
+    CW = Math.floor(W * DPR);
+    CH = Math.floor(H * DPR);
+    canvas.width = CW;
+    canvas.height = CH;
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  const rand = (a,b)=>a+Math.random()*(b-a);
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  const lerp = (a,b,t)=>a+(b-a)*t);
+
+  function gameRect(){
+    const h = H * 0.80;
+    const w = h * 0.58;
+    return {x:(W-w)/2,y:(H-h)/2,w,h};
+  }
+
+  const themes = [
+    {top:"#59b7b8", left:"#3f8f95", right:"#33787f", bgTop:"#4aa7a8", bgBottom:"#a9d6a8"},
+    {top:"#6db7e6", left:"#4b92c9", right:"#3a78aa", bgTop:"#73a7a8", bgBottom:"#d9e3b4"},
+    {top:"#f0efcf", left:"#c4d7a3", right:"#adc58e", bgTop:"#63a9a4", bgBottom:"#b9e3ba"},
+    {top:"#ffcb1b", left:"#e38e03", right:"#b95c00", bgTop:"#1f1d24", bgBottom:"#ff2745"},
+    {top:"#8e7c91", left:"#55495c", right:"#433843", bgTop:"#9b9ca3", bgBottom:"#d7d1df"}
+  ];
+
+  let phase = 0;
+  let score = 0;
+  let best = Number(localStorage.getItem("stack_style_best") || 0);
+  let diamonds = Number(localStorage.getItem("stack_style_diamonds") || 0);
+
+  let blocks = [];
+  let active = null;
+  let falling = [];
+  let particles = [];
+  let over = false;
+  let ready = true;
+  let camY = 0;
+  let pulse = 0;
+  let sparkleTimer = 0;
+
+  function currentTheme(){ return themes[phase % themes.length]; }
+
+  function iso(x,y,z){
+    const rect = gameRect();
+    const cx = rect.x + rect.w*0.5;
+    const groundY = rect.y + rect.h*0.82 - camY;
+    return {
+      x: cx + (x - y) * 0.86,
+      y: groundY + (x + y) * 0.50 - z
+    };
+  }
+
+  function startGame(){
+    phase = 0;
+    score = 0;
+    over = false;
+    ready = true;
+    camY = 0;
+    falling = [];
+    particles = [];
+    blocks = [];
+    pulse = 0;
+    sparkleTimer = 0;
+
+    blocks.push({x:0,y:0,z:0,w:168,d:168,h:30,theme:0});
+    spawnNext();
+  }
+
+  function spawnNext(){
+    const prev = blocks[blocks.length-1];
+    const dir = (blocks.length % 2 === 1) ? "x" : "y";
+    const span = 260;
+    active = {
+      dir,
+      x: dir==="x" ? -span : prev.x,
+      y: dir==="y" ? -span : prev.y,
+      z: prev.z + prev.h,
+      w: prev.w,
+      d: prev.d,
+      h: prev.h,
+      v: 3.8 + Math.min(4.8, score*0.03),
+      theme: blocks.length
+    };
+  }
+
+  function saveStats(){
+    localStorage.setItem("stack_style_best", String(best));
+    localStorage.setItem("stack_style_diamonds", String(diamonds));
+  }
+
+  function addParticles(x,y,count,color){
+    for(let i=0;i<count;i++){
+      particles.push({
+        x,y,
+        vx: rand(-1.8,1.8),
+        vy: rand(-3.5,-0.6),
+        g: rand(0.08,0.16),
+        life: rand(22,42),
+        maxLife: 42,
+        size: rand(2,5),
+        color
+      });
+    }
+  }
+
+  function sliceMissed(part, vertical){
+    if(!part) return;
+    falling.push({
+      ...part,
+      vx: vertical ? rand(-0.8,0.8) : (part.x > 0 ? 2.0 : -2.0),
+      vy: 0,
+      vz: 0,
+      dead:false
+    });
+  }
+
+  function dropActive(){
+    if(over || !active) {
+      if(over) startGame();
+      return;
+    }
+
+    const prev = blocks[blocks.length-1];
+    const perfectThreshold = 6;
+    const dir = active.dir;
+    let overlap, perfect = false, trimmed = null;
+
+    if(dir === "x"){
+      const dx = active.x - prev.x;
+      overlap = prev.w - Math.abs(dx);
+
+      if(Math.abs(dx) <= perfectThreshold){
+        active.x = prev.x;
+        overlap = prev.w;
+        perfect = true;
+      }
+
+      if(overlap <= 0){
+        over = true;
+        sliceMissed({...active}, false);
+        best = Math.max(best, score);
+        saveStats();
+        return;
+      }
+
+      if(overlap < active.w){
+        if(dx > 0){
+          trimmed = {x: active.x + overlap, y: active.y, z: active.z, w: active.w - overlap, d: active.d, h: active.h, theme: active.theme};
+          active.x = active.x + (active.w - overlap) * 0.5;
+        } else {
+          trimmed = {x: active.x - overlap, y: active.y, z: active.z, w: active.w - overlap, d: active.d, h: active.h, theme: active.theme};
+          active.x = active.x - (active.w - overlap) * 0.5;
+        }
+        active.w = overlap;
+      }
+    } else {
+      const dy = active.y - prev.y;
+      overlap = prev.d - Math.abs(dy);
+
+      if(Math.abs(dy) <= perfectThreshold){
+        active.y = prev.y;
+        overlap = prev.d;
+        perfect = true;
+      }
+
+      if(overlap <= 0){
+        over = true;
+        sliceMissed({...active}, true);
+        best = Math.max(best, score);
+        saveStats();
+        return;
+      }
+
+      if(overlap < active.d){
+        if(dy > 0){
+          trimmed = {x: active.x, y: active.y + overlap, z: active.z, w: active.w, d: active.d - overlap, h: active.h, theme: active.theme};
+          active.y = active.y + (active.d - overlap) * 0.5;
+        } else {
+          trimmed = {x: active.x, y: active.y - overlap, z: active.z, w: active.w, d: active.d - overlap, h: active.h, theme: active.theme};
+          active.y = active.y - (active.d - overlap) * 0.5;
+        }
+        active.d = overlap;
+      }
+    }
+
+    if(trimmed) sliceMissed(trimmed, dir==="y");
+
+    blocks.push({x: active.x, y: active.y, z: active.z, w: active.w, d: active.d, h: active.h, theme: active.theme});
+
+    score++;
+    if(perfect){
+      diamonds++;
+      pulse = 1;
+      const p = iso(active.x, active.y, active.z + active.h*0.3);
+      addParticles(p.x, p.y, 16, "255,255,255");
+      saveStats();
+    } else {
+      const p = iso(active.x, active.y, active.z + active.h*0.3);
+      addParticles(p.x, p.y, 6, "255,255,255");
+    }
+
+    best = Math.max(best, score);
+    if(score>0 && score % 8 === 0) phase++;
+    spawnNext();
+  }
+
+  function update(){
+    pulse *= 0.93;
+    sparkleTimer += 1;
+    camY = lerp(camY, Math.max(0, (blocks.length-7)*30), 0.08);
+
+    if(active && !over){
+      active[active.dir] += active.v;
+      if(active[active.dir] > 275 || active[active.dir] < -275) active.v *= -1;
+    }
+
+    for(const p of particles){
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += p.g;
+      p.life--;
+    }
+    particles = particles.filter(p=>p.life>0);
+
+    for(const f of falling){
+      f.vz += 0.32;
+      f.z -= f.vz;
+      f.x += f.vx;
+      f.y += f.vy;
+      if(f.z < -220) f.dead = true;
+    }
+    falling = falling.filter(f=>!f.dead);
+  }
+
+  function drawDiamond(x,y,s){
+    ctx.beginPath();
+    ctx.moveTo(x, y-s);
+    ctx.lineTo(x+s*0.72, y);
+    ctx.lineTo(x, y+s);
+    ctx.lineTo(x-s*0.72, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawBlock(block, alpha=1){
+    const theme = themes[block.theme % themes.length];
+    const p1 = iso(block.x, block.y, block.z + block.h);
+    const p2 = iso(block.x + block.w, block.y, block.z + block.h);
+    const p3 = iso(block.x + block.w, block.y + block.d, block.z + block.h);
+    const p4 = iso(block.x, block.y + block.d, block.z + block.h);
+    const b2 = iso(block.x + block.w, block.y, block.z);
+    const b3 = iso(block.x + block.w, block.y + block.d, block.z);
+    const b4 = iso(block.x, block.y + block.d, block.z);
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = theme.left;
+    ctx.beginPath();
+    ctx.moveTo(p4.x*DPR,p4.y*DPR); ctx.lineTo(p3.x*DPR,p3.y*DPR); ctx.lineTo(b3.x*DPR,b3.y*DPR); ctx.lineTo(b4.x*DPR,b4.y*DPR);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = theme.right;
+    ctx.beginPath();
+    ctx.moveTo(p2.x*DPR,p2.y*DPR); ctx.lineTo(p3.x*DPR,p3.y*DPR); ctx.lineTo(b3.x*DPR,b3.y*DPR); ctx.lineTo(b2.x*DPR,b2.y*DPR);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = theme.top;
+    ctx.beginPath();
+    ctx.moveTo(p1.x*DPR,p1.y*DPR); ctx.lineTo(p2.x*DPR,p2.y*DPR); ctx.lineTo(p3.x*DPR,p3.y*DPR); ctx.lineTo(p4.x*DPR,p4.y*DPR);
+    ctx.closePath(); ctx.fill();
+
+    ctx.globalAlpha = 1;
+  }
+
+  function drawShadow(){
+    const base = blocks[0];
+    const a = iso(base.x, base.y, 0);
+    const b = iso(base.x + base.w, base.y, 0);
+    const c = iso(base.x + base.w, base.y + base.d, 0);
+    const d = iso(base.x, base.y + base.d, 0);
+    const cx = ((a.x+b.x+c.x+d.x)/4) * DPR;
+    const cy = (((a.y+b.y+c.y+d.y)/4) + 90) * DPR;
+    const grad = ctx.createRadialGradient(cx, cy, 30*DPR, cx, cy, 180*DPR);
+    grad.addColorStop(0, "rgba(0,0,0,0.22)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 140*DPR, 60*DPR, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function drawBackground(){
+    const rect = gameRect();
+    const theme = currentTheme();
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0,0,CW,CH);
+
+    const x = rect.x*DPR, y = rect.y*DPR, w = rect.w*DPR, h = rect.h*DPR;
+    const g = ctx.createLinearGradient(0,y,0,y+h);
+    g.addColorStop(0, theme.bgTop);
+    g.addColorStop(1, theme.bgBottom);
+    ctx.fillStyle = g;
+    ctx.fillRect(x,y,w,h);
+
+    const rg = ctx.createRadialGradient(x+w/2, y+h*0.34, 20*DPR, x+w/2, y+h*0.60, h*0.75);
+    rg.addColorStop(0, "rgba(255,255,255,0.18)");
+    rg.addColorStop(1, "rgba(255,255,255,0.00)");
+    ctx.fillStyle = rg;
+    ctx.fillRect(x,y,w,h);
+
+    for(let i=0;i<24;i++){
+      const px = (rect.x + ((i*137)%1000)/1000 * rect.w) * DPR;
+      const py = (rect.y + ((i*91 + sparkleTimer*0.12)%1000)/1000 * rect.h) * DPR;
+      const s = ((i%3)+1) * DPR * 0.75;
+      ctx.globalAlpha = 0.35 + (i%5)*0.1;
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(px, py, s, s);
+    }
+    ctx.globalAlpha = 1;
+
+    const bg = ctx.createRadialGradient(x+w*0.50,y+h*0.94,10*DPR,x+w*0.50,y+h*0.94,w*0.45);
+    bg.addColorStop(0,"rgba(255,255,255,0.16)");
+    bg.addColorStop(1,"rgba(255,255,255,0.0)");
+    ctx.fillStyle = bg;
+    ctx.fillRect(x,y,w,h);
+  }
+
+  function drawUI(){
+    const rect = gameRect();
+    ctx.fillStyle = "rgba(255,255,255,0.94)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `${Math.round(rect.w*0.13*DPR)}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+    ctx.fillText(String(score), (rect.x + rect.w/2)*DPR, (rect.y + rect.h*0.13)*DPR);
+
+    ctx.textAlign = "right";
+    ctx.font = `${Math.round(rect.w*0.07*DPR)}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+    ctx.fillText(String(diamonds), (rect.x + rect.w*0.95)*DPR, (rect.y + rect.h*0.06)*DPR);
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    drawDiamond((rect.x + rect.w*0.985)*DPR, (rect.y + rect.h*0.055)*DPR, rect.w*0.020*DPR);
+
+    if(over){
+      ctx.globalAlpha = 0.14;
+      ctx.fillStyle = "#000";
+      ctx.fillRect(rect.x*DPR, rect.y*DPR, rect.w*DPR, rect.h*DPR);
+      ctx.globalAlpha = 1;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(255,255,255,0.96)";
+      ctx.font = `${Math.round(rect.w*0.09*DPR)}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.fillText(String(score), (rect.x + rect.w/2)*DPR, (rect.y + rect.h*0.18)*DPR);
+      ctx.font = `${Math.round(rect.w*0.042*DPR)}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.globalAlpha = 0.7;
+      ctx.fillText(String(best), (rect.x + rect.w*0.50)*DPR, (rect.y + rect.h*0.25)*DPR);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function render(){
+    drawBackground();
+    drawShadow();
+    for(const b of blocks) drawBlock(b, 1);
+    for(const f of falling) drawBlock(f, 1);
+    if(active && !over) drawBlock(active, 1);
+
+    for(const p of particles){
+      const a = p.life / p.maxLife;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = `rgba(${p.color},${a})`;
+      ctx.beginPath();
+      ctx.arc(p.x*DPR, p.y*DPR, p.size*DPR, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    drawUI();
+  }
+
+  function tick(){
+    update();
+    render();
+    requestAnimationFrame(tick);
+  }
+
+  function interact(){
+    if(ready) ready = false;
+    dropActive();
+  }
+
+  canvas.addEventListener('pointerdown', (e)=>{ e.preventDefault(); interact(); }, {passive:false});
+  addEventListener('keydown', (e)=>{
+    if(e.code === 'Space' || e.code === 'Enter'){
+      e.preventDefault();
+      interact();
+    }
+  });
+
+  startGame();
+  tick();
+})();
+</script>
+</body>
+</html>
