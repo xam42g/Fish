@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Küken Jump Worlds</title>
+<style>
+  :root{
+    --bg:#000;
+    --paper:#f7f7f5;
+    --grid:#ececeb;
+    --green:#71c70f;
+    --blue:#1f95cf;
+    --brown:#9a6a32;
+    --yellow:#ffd93b;
+    --orange:#ffb436;
+    --ui:#f4ecd6;
+    --ink:#111;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:system-ui,Arial,sans-serif}
+  body{display:grid;place-items:center}
+  .wrap{position:fixed;inset:0;display:grid;place-items:center;background:#000}
+  .frame{
+    position:relative;
+    width:min(100vw, calc(100vh * .62));
+    height:min(100vh, calc(100vw / .62));
+    border-radius:min(4.5vw, 34px);
+    overflow:hidden;
+    background:#111;
+  }
+  canvas{display:block;width:100%;height:100%}
+  .hud,.screens{position:absolute;inset:0}
+  .hud{pointer-events:none}
+  .screens{pointer-events:none}
+  .pause,.mode,.menu-btn,.card-btn,.world-btn,.skin-btn,.tab-btn,.back-btn{
+    pointer-events:auto;cursor:pointer;border:none;
+    background:rgba(244,236,214,.98);color:#111;
+    box-shadow:0 2px 0 rgba(0,0,0,.08);
+  }
+  .pause,.mode{
+    position:absolute;top:18px;height:56px;border-radius:18px;border:3px solid rgba(0,0,0,.08);
+    display:grid;place-items:center;font-weight:900;
+  }
+  .pause{left:18px;width:56px;font-size:28px}
+  .pause:before{content:"II";letter-spacing:-3px;transform:translateX(-2px)}
+  .mode{left:84px;min-width:126px;padding:0 14px;font-size:16px}
+  .pill{
+    position:absolute;top:18px;left:50%;transform:translateX(-50%);
+    background:var(--ui);border-radius:18px;padding:6px 18px;font-size:18px;font-weight:900;color:#111;
+    box-shadow:0 2px 0 rgba(0,0,0,.08)
+  }
+  .coins{
+    position:absolute;top:18px;right:18px;min-width:112px;height:56px;border-radius:20px;background:var(--orange);
+    box-shadow:0 2px 0 rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;gap:6px;
+    font-size:28px;font-weight:900;color:#111
+  }
+  .coins span:last-child{font-size:24px}
+  .overlay-tip{
+    position:absolute;left:50%;bottom:24px;transform:translateX(-50%);
+    background:rgba(255,255,255,.93);color:#111;border:3px solid #111;border-radius:20px;
+    padding:10px 14px;max-width:min(88%, 430px);text-align:center;pointer-events:none;
+    box-shadow:0 8px 26px rgba(0,0,0,.18);font-size:14px;line-height:1.35
+  }
+
+  .screen{
+    position:absolute;inset:0;display:none;pointer-events:auto;
+    background:rgba(0,0,0,.14);
+  }
+  .screen.show{display:block}
+  .panel{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(88%, 480px);max-height:min(88%, 900px);overflow:auto;
+    background:rgba(255,255,255,.97);border:4px solid #111;border-radius:28px;
+    padding:18px 18px 20px;box-shadow:0 20px 40px rgba(0,0,0,.18)
+  }
+  .panel h1,.panel h2{margin:0 0 8px;color:#111}
+  .panel h1{font-size:34px}
+  .panel h2{font-size:20px}
+  .panel p{margin:0 0 12px;color:#333}
+  .menu-grid,.shop-grid,.world-grid{display:grid;gap:12px}
+  .menu-grid{grid-template-columns:1fr 1fr}
+  .world-grid,.shop-grid{grid-template-columns:1fr 1fr}
+  .card-btn,.world-btn,.skin-btn,.tab-btn,.back-btn,.menu-btn{
+    border:3px solid #111;border-radius:18px;padding:12px 14px;font-weight:900;font-size:16px
+  }
+  .menu-btn.big{font-size:20px;padding:16px}
+  .stat-row{
+    display:flex;justify-content:space-between;gap:14px;margin:8px 0;padding:10px 12px;border-radius:14px;background:#f6f2e8;
+    border:2px solid #111;font-weight:900
+  }
+  .tabs{display:flex;gap:10px;margin-bottom:12px}
+  .tab-btn.active,.world-btn.active,.skin-btn.active{background:#ffdc71}
+  .skin-preview{
+    height:84px;border-radius:16px;border:2px dashed #999;background:#fafafa;display:grid;place-items:center;margin-bottom:10px
+  }
+  .price{opacity:.8;font-size:14px}
+  .owned{color:#247b12}
+  .locked{color:#8b2e1a}
+  .topbar{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px
+  }
+  .title-mini{font-size:14px;font-weight:900;opacity:.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="frame" id="frame">
+    <canvas id="game" width="720" height="1160"></canvas>
+
+    <div class="hud">
+      <button class="pause" id="pauseBtn" aria-label="Pause"></button>
+      <button class="mode" id="modeBtn" aria-label="Steuerung wechseln">Tastatur</button>
+      <div class="pill" id="scoreSmall">0</div>
+      <div class="coins"><span id="coinCount">0</span><span>🪙</span></div>
+      <div class="overlay-tip" id="overlayTip">W / ↑ springen, A/D oder ←/→ bewegen, Leertaste schießt nach oben. Im Handy-Modus Gerät kippen und tippen zum Springen + Schießen.</div>
+    </div>
+
+    <div class="screens">
+      <div class="screen show" id="mainMenu">
+        <div class="panel">
+          <div class="topbar">
+            <div>
+              <div class="title-mini">Küken Jump</div>
+              <h1>Hauptmenü</h1>
+            </div>
+            <button class="back-btn" id="openShopBtn">Shop</button>
+          </div>
+
+          <div class="stat-row"><span>Coins gesamt</span><span id="menuCoins">0</span></div>
+          <div class="stat-row"><span>Bester Score</span><span id="menuBest">0</span></div>
+
+          <h2>Welt wählen</h2>
+          <div class="world-grid" id="worldGrid"></div>
+
+          <div style="height:12px"></div>
+          <button class="menu-btn big" id="playBtn">Spielen</button>
+        </div>
+      </div>
+
+      <div class="screen" id="gameOverMenu">
+        <div class="panel">
+          <h1>Verloren</h1>
+          <p>Wähle aus, was du als Nächstes machen willst.</p>
+          <div class="stat-row"><span>Coins gesammelt</span><span id="runCoins">0</span></div>
+          <div class="stat-row"><span>Score dieser Runde</span><span id="runScore">0</span></div>
+          <div class="stat-row"><span>Höchster Score</span><span id="bestScore">0</span></div>
+          <div style="height:8px"></div>
+          <div class="menu-grid">
+            <button class="menu-btn" id="retryBtn">Nochmal spielen</button>
+            <button class="menu-btn" id="goMainBtn">Hauptmenü</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen" id="shopMenu">
+        <div class="panel">
+          <div class="topbar">
+            <h1>Shop</h1>
+            <button class="back-btn" id="closeShopBtn">Zurück</button>
+          </div>
+          <div class="stat-row"><span>Coins</span><span id="shopCoins">0</span></div>
+          <div class="skin-preview" id="skinPreview"></div>
+          <div class="shop-grid" id="shopGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const frame = document.getElementById('frame');
+
+  const scoreSmallEl = document.getElementById('scoreSmall');
+  const coinCountEl = document.getElementById('coinCount');
+  const overlayTip = document.getElementById('overlayTip');
+  const modeBtn = document.getElementById('modeBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+
+  const mainMenu = document.getElementById('mainMenu');
+  const gameOverMenu = document.getElementById('gameOverMenu');
+  const shopMenu = document.getElementById('shopMenu');
+
+  const playBtn = document.getElementById('playBtn');
+  const retryBtn = document.getElementById('retryBtn');
+  const goMainBtn = document.getElementById('goMainBtn');
+  const openShopBtn = document.getElementById('openShopBtn');
+  const closeShopBtn = document.getElementById('closeShopBtn');
+
+  const menuCoins = document.getElementById('menuCoins');
+  const menuBest = document.getElementById('menuBest');
+  const runCoins = document.getElementById('runCoins');
+  const runScore = document.getElementById('runScore');
+  const bestScore = document.getElementById('bestScore');
+  const shopCoins = document.getElementById('shopCoins');
+  const worldGrid = document.getElementById('worldGrid');
+  const shopGrid = document.getElementById('shopGrid');
+  const skinPreview = document.getElementById('skinPreview');
+
+  const state = {
+    dpr: Math.max(1, Math.min(2, devicePixelRatio || 1)),
+    viewW: 720,
+    viewH: 1160,
+    screen: 'main',
+    gameState: 'idle',
+    paused: false,
+    controlMode: 'keyboard',
+    camY: 0,
+    bestY: 0,
+    score: 0,
+    coinsRun: 0,
+    coinsTotal: 0,
+    bestScore: 0,
+    selectedWorld: 'galaxy',
+    selectedSkin: 'classic'
+  };
+
+  const worlds = {
+    galaxy: {name:'Galaxie', bg:'#0f1025', paper:'#1a1d42', grid:'#2a2e66', green:'#7de13f', blue:'#7f6cff', brown:'#7e5b33', orange:'#ffd05a'},
+    western:{name:'Western', bg:'#412714', paper:'#f6e7c7', grid:'#eddab3', green:'#b98946', blue:'#6aaed6', brown:'#8e5b2b', orange:'#ffb852'},
+    football:{name:'Fußball', bg:'#0e5b28', paper:'#f7f7f5', grid:'#e7e7e7', green:'#6ec816', blue:'#1f95cf', brown:'#9a6a32', orange:'#ffb436'},
+    ice:{name:'Eiswelt', bg:'#7ab8d1', paper:'#eef9ff', grid:'#d7edf7', green:'#86d9b5', blue:'#63a8ff', brown:'#8da7b2', orange:'#ffd27d'}
+  };
+
+  const skins = {
+    classic:{name:'Klassik', price:0, color:'#ffd93b', outfit:'#74b942', owned:true},
+    sunset:{name:'Sunset', price:0, color:'#ffbf57', outfit:'#cc5c3f', owned:true},
+    mint:{name:'Mint', price:0, color:'#f0ff7a', outfit:'#39a67a', owned:true},
+    royal:{name:'Royal', price:0, color:'#ffe063', outfit:'#5a58d6', owned:true}
+  };
+
+  const chickSprite = new Image();
+  chickSprite.src = "data:image/png;base64,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";
+
+  const player = {x:0,y:0,vx:0,vy:0,w:44,h:48,facing:1,propeller:0,shootCd:0};
+  const input = {left:false,right:false,jump:false,shoot:false,tilt:0,tiltReady:false};
+  const platforms=[], monsters=[], bullets=[], enemyBullets=[], particles=[];
+
+  function loadSave(){
+    try{
+      const raw = localStorage.getItem('kueken_jump_save');
+      if(!raw) return;
+      const save = JSON.parse(raw);
+      if(typeof save.coinsTotal === 'number') state.coinsTotal = save.coinsTotal;
+      if(typeof save.bestScore === 'number') state.bestScore = save.bestScore;
+      if(save.selectedWorld && worlds[save.selectedWorld]) state.selectedWorld = save.selectedWorld;
+      if(save.selectedSkin && skins[save.selectedSkin]) state.selectedSkin = save.selectedSkin;
+      if(save.owned){
+        for(const key of Object.keys(skins)) if(save.owned[key]) skins[key].owned = true;
+      }
+    }catch(e){}
+  }
+  function saveGame(){
+    localStorage.setItem('kueken_jump_save', JSON.stringify({
+      coinsTotal: state.coinsTotal,
+      bestScore: state.bestScore,
+      selectedWorld: state.selectedWorld,
+      selectedSkin: state.selectedSkin,
+      owned: Object.fromEntries(Object.entries(skins).map(([k,v])=>[k,v.owned]))
+    }));
+  }
+
+  function resize(){
+    const rect = frame.getBoundingClientRect();
+    canvas.width = Math.round(rect.width * state.dpr);
+    canvas.height = Math.round(rect.height * state.dpr);
+    state.viewW = rect.width;
+    state.viewH = rect.height;
+    ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
+  }
+  resize();
+  addEventListener('resize', resize);
+
+  function rand(a,b){ return Math.random()*(b-a)+a; }
+  function sy(y){ return y - state.camY; }
+  function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){ return ax<bx+bw && ax+aw>bx && ay<by+bh && ay+ah>by; }
+
+  function currentWorld(){ return worlds[state.selectedWorld]; }
+
+  function drawRoundRect(x,y,w,h,r,fill,stroke){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    if(fill){ ctx.fillStyle=fill; ctx.fill(); }
+    if(stroke){ ctx.lineWidth=3; ctx.strokeStyle=stroke; ctx.stroke(); }
+  }
+
+  function showScreen(name){
+    state.screen = name;
+    mainMenu.classList.toggle('show', name==='main');
+    gameOverMenu.classList.toggle('show', name==='gameover');
+    shopMenu.classList.toggle('show', name==='shop');
+  }
+
+  function updateButtons(){
+    modeBtn.textContent = state.controlMode === 'keyboard' ? 'Tastatur' : 'Handy/iPad';
+    scoreSmallEl.textContent = Math.max(0, Math.floor(state.score));
+    coinCountEl.textContent = state.coinsTotal + state.coinsRun;
+    menuCoins.textContent = state.coinsTotal;
+    menuBest.textContent = Math.floor(state.bestScore);
+    shopCoins.textContent = state.coinsTotal;
+    bestScore.textContent = Math.floor(state.bestScore);
+    runScore.textContent = Math.floor(state.score);
+    runCoins.textContent = state.coinsRun;
+  }
+
+  function resetRun(){
+    state.camY = 0;
+    state.bestY = state.viewH - 160;
+    state.score = 0;
+    state.coinsRun = 0;
+    state.paused = false;
+    player.x = state.viewW * 0.5;
+    player.y = state.viewH - 160;
+    player.vx = 0; player.vy = -18; player.facing = 1; player.propeller = 0; player.shootCd = 0;
+    platforms.length = monsters.length = bullets.length = enemyBullets.length = particles.length = 0;
+    generateInitial();
+    updateButtons();
+  }
+
+  function startRun(){
+    resetRun();
+    state.gameState = 'play';
+    showScreen('none');
+    overlayTip.style.display = 'block';
+  }
+
+  function endRun(){
+    state.gameState = 'over';
+    state.coinsTotal += state.coinsRun;
+    if(state.score > state.bestScore) state.bestScore = state.score;
+    saveGame();
+    updateButtons();
+    showScreen('gameover');
+  }
+
+  function openMain(){
+    state.gameState = 'idle';
+    showScreen('main');
+    overlayTip.style.display = 'none';
+    updateButtons();
+  }
+
+  function addPlatform(x,y,type='green'){
+    const p = {x,y,w:rand(88,132),h:26,type,vx:0,broken:false,hasSpring:false,hasProp:false,coin:false};
+    if(type==='blue') p.vx = rand(44,68) * (Math.random()<.5?-1:1);
+    if(type==='brown') p.w = rand(90,120);
+    if(type==='green' && Math.random() < 0.08) p.hasSpring = true;
+    if(type==='green' && Math.random() < 0.04) p.hasProp = true;
+    if(Math.random() < 0.06) p.coin = true;
+    platforms.push(p);
+    return p;
+  }
+
+  function addMonster(y){
+    const base = platforms.find(p => Math.abs(p.y - y) < 60 && p.type !== 'brown');
+    if(!base) return;
+    monsters.push({
+      x: base.x + base.w * 0.5, y: base.y - 30, w:60, h:48,
+      vx: rand(18,34) * (Math.random() < .5 ? -1 : 1), shoot: rand(1.6,2.7)
+    });
+  }
+
+  function generateInitial(){
+    let y = state.viewH - 100;
+    addPlatform(state.viewW * .42, y, 'green');
+    for(let i=1;i<26;i++){
+      y -= rand(92, 118);
+      const x = rand(18, state.viewW - 154);
+      let type = 'green';
+      const r = Math.random();
+      if(i > 8 && r < 0.12) type = 'brown';
+      else if(i > 11 && r < 0.22) type = 'blue';
+      const p = addPlatform(x, y, type);
+      if(i > 16 && Math.random() < 0.08) addMonster(p.y);
+    }
+  }
+
+  function extendWorld(){
+    let topY = Math.min(...platforms.map(p => p.y));
+    while(topY > state.camY - 1300){
+      topY -= rand(90, 118);
+      const x = rand(18, state.viewW - 154);
+      let type = 'green';
+      const diff = Math.min(1, state.score / 3500);
+      const r = Math.random();
+      if(r < 0.12 + diff*0.08) type = 'brown';
+      else if(r < 0.23 + diff*0.12) type = 'blue';
+      const p = addPlatform(x, topY, type);
+      if(state.score > 260 && Math.random() < 0.05 + diff*0.15) addMonster(p.y);
+    }
+    const killY = state.camY + state.viewH + 220;
+    for(let i=platforms.length-1;i>=0;i--) if(platforms[i].y > killY || platforms[i].broken) platforms.splice(i,1);
+    for(let i=monsters.length-1;i>=0;i--) if(monsters[i].y > killY) monsters.splice(i,1);
+    for(let i=particles.length-1;i>=0;i--) if(particles[i].y > killY || particles[i].life<=0) particles.splice(i,1);
+  }
+
+  function bounce(power=18.5){ player.vy = -power; }
+  function die(){
+    for(let i=0;i<16;i++) particles.push({x:player.x,y:player.y,vx:rand(-2,2),vy:rand(-3,1),r:rand(2,4),life:rand(16,28),c:'#d8d8d8'});
+    endRun();
+  }
+  function shoot(){
+    if(player.shootCd > 0) return;
+    player.shootCd = 10;
+    bullets.push({x:player.x, y:player.y - player.h*.6, vy:-13, r:4});
+  }
+
+  function startPlayFromInput(){
+    if(state.gameState !== 'play' && state.screen === 'none'){
+      state.gameState = 'play';
+    }
+  }
+
+  addEventListener('keydown', e => {
+    if(['ArrowLeft','ArrowRight','ArrowUp','Space','KeyA','KeyD','KeyW'].includes(e.code)) e.preventDefault();
+    if(state.screen !== 'none') return;
+    startPlayFromInput();
+    if(e.code==='ArrowLeft'||e.code==='KeyA') input.left = true;
+    if(e.code==='ArrowRight'||e.code==='KeyD') input.right = true;
+    if(e.code==='ArrowUp'||e.code==='KeyW') input.jump = true;
+    if(e.code==='Space') input.shoot = true;
+    if(e.code==='KeyP') state.paused = !state.paused;
+  });
+  addEventListener('keyup', e => {
+    if(e.code==='ArrowLeft'||e.code==='KeyA') input.left = false;
+    if(e.code==='ArrowRight'||e.code==='KeyD') input.right = false;
+    if(e.code==='ArrowUp'||e.code==='KeyW') input.jump = false;
+    if(e.code==='Space') input.shoot = false;
+  });
+
+  canvas.addEventListener('pointerdown', () => {
+    if(state.screen !== 'none') return;
+    startPlayFromInput();
+    if(state.controlMode === 'tilt'){
+      input.jump = true;
+      input.shoot = true;
+      setTimeout(() => { input.jump = false; input.shoot = false; }, 140);
+    }
+  });
+  addEventListener('pointerup', ()=>{ input.jump = false; input.shoot = false; });
+
+  pauseBtn.addEventListener('click', () => {
+    if(state.screen === 'none') state.paused = !state.paused;
+  });
+
+  async function switchMode(){
+    if(state.controlMode === 'keyboard'){
+      state.controlMode = 'tilt';
+      try{
+        if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+          const res = await DeviceOrientationEvent.requestPermission();
+          input.tiltReady = res === 'granted';
+        }else{
+          input.tiltReady = true;
+        }
+      }catch(err){ input.tiltReady = false; }
+      overlayTip.style.display = 'block';
+      overlayTip.textContent = input.tiltReady
+        ? 'Handy/iPad-Modus: Gerät kippen für links/rechts. Auf den Bildschirm tippen = Springen + Schießen.'
+        : 'Handy/iPad-Modus: Falls nichts passiert, Bewegungssensoren im Browser erlauben und nochmal drücken.';
+    }else{
+      state.controlMode = 'keyboard';
+      overlayTip.style.display = 'block';
+      overlayTip.textContent = 'Tastatur-Modus: A/D oder ←/→ bewegen, W / ↑ springen, Leertaste schießt nach oben.';
+    }
+    updateButtons();
+  }
+  modeBtn.addEventListener('click', switchMode);
+
+  addEventListener('deviceorientation', e => {
+    if(state.controlMode !== 'tilt') return;
+    const gamma = typeof e.gamma === 'number' ? e.gamma : 0;
+    input.tilt = Math.max(-1, Math.min(1, gamma / 22));
+  });
+
+  function tick(){
+    if(state.paused || state.gameState !== 'play') return;
+
+    if(input.shoot) shoot();
+    if(player.shootCd > 0) player.shootCd--;
+
+    let ax = 0;
+    if(state.controlMode === 'tilt' && input.tiltReady){
+      ax = input.tilt;
+    }else{
+      if(input.left) ax -= 1;
+      if(input.right) ax += 1;
+    }
+
+    if(ax > 0.05) player.facing = 1;
+    else if(ax < -0.05) player.facing = -1;
+
+    player.vx += ax * (player.propeller > 0 ? 0.68 : 0.5);
+    player.vx *= 0.92;
+    if(player.vx > 8.6) player.vx = 8.6;
+    if(player.vx < -8.6) player.vx = -8.6;
+
+    if(player.propeller > 0){
+      player.propeller--;
+      player.vy = -11.5;
+    }else{
+      player.vy += 0.55;
+      if(player.vy > 16) player.vy = 16;
+    }
+
+    const prevY = player.y;
+    player.x += player.vx;
+    player.y += player.vy;
+
+    if(player.x < -30) player.x = state.viewW + 30;
+    if(player.x > state.viewW + 30) player.x = -30;
+
+    for(const p of platforms){
+      if(p.type === 'blue'){
+        p.x += p.vx * 0.12;
+        if(p.x < 10 || p.x + p.w > state.viewW - 10) p.vx *= -1;
+      }
+    }
+
+    if(player.vy > 0){
+      const px = player.x - player.w*.36;
+      const pw = player.w*.72;
+      for(const p of platforms){
+        const crossed = prevY + player.h*.45 <= p.y && player.y + player.h*.45 >= p.y;
+        const onX = px + pw > p.x + 6 && px < p.x + p.w - 6;
+        if(crossed && onX){
+          if(p.type === 'brown'){
+            if(!p.broken){
+              p.broken = true;
+              for(let i=0;i<8;i++) particles.push({x:p.x+p.w/2,y:p.y,vx:rand(-2.5,2.5),vy:rand(-1.2,2.5),r:rand(2,5),life:rand(18,34),c:'#8a5d2a'});
+            }
+          }else{
+            if(p.hasSpring){ p.hasSpring = false; bounce(30); }
+            else bounce(18.5);
+            if(p.hasProp){ p.hasProp = false; player.propeller = 125; }
+            if(p.coin){ p.coin = false; state.coinsRun += 1; }
+            break;
+          }
+        }
+      }
+    }
+
+    for(const m of monsters){
+      m.x += m.vx * 0.08;
+      if(m.x < 40 || m.x > state.viewW - 40) m.vx *= -1;
+      m.shoot -= 1/60;
+      const monsterVisible = sy(m.y) > -80 && sy(m.y) < state.viewH + 80;
+      if(state.score > 900 && monsterVisible && m.shoot <= 0){
+        m.shoot = rand(2.4, 4.2);
+        enemyBullets.push({x:m.x, y:m.y, vy:rand(3.0,4.1), r:5});
+      }
+      if(rectsOverlap(player.x-player.w*.3, player.y-player.h*.45, player.w*.6, player.h*.82, m.x-m.w/2, m.y-m.h/2, m.w, m.h)){
+        die(); return;
+      }
+    }
+
+    for(let i=bullets.length-1;i>=0;i--){
+      const b = bullets[i];
+      b.y += b.vy;
+      let hit = false;
+      for(let j=monsters.length-1;j>=0;j--){
+        const m = monsters[j];
+        if(rectsOverlap(b.x-b.r,b.y-b.r,b.r*2,b.r*2,m.x-m.w/2,m.y-m.h/2,m.w,m.h)){
+          bullets.splice(i,1); monsters.splice(j,1); hit = true;
+          for(let k=0;k<12;k++) particles.push({x:m.x,y:m.y,vx:rand(-2.3,2.3),vy:rand(-2.3,2.3),r:rand(2,4),life:rand(18,30),c:'#4f8ecf'});
+          break;
+        }
+      }
+      if(!hit && b.y < state.camY - 80) bullets.splice(i,1);
+    }
+
+    for(let i=enemyBullets.length-1;i>=0;i--){
+      const b = enemyBullets[i];
+      b.y += b.vy;
+      if(rectsOverlap(player.x-player.w*.3, player.y-player.h*.45, player.w*.6, player.h*.82, b.x-b.r, b.y-b.r, b.r*2, b.r*2)){
+        die(); return;
+      }
+      if(b.y > state.camY + state.viewH + 60) enemyBullets.splice(i,1);
+    }
+
+    for(const p of particles){
+      p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.life--;
+    }
+
+    if(player.y < state.bestY) state.bestY = player.y;
+    state.score = Math.max(0, ((state.viewH - 160) - state.bestY) * 0.52);
+
+    const camTarget = Math.min(state.camY, player.y - state.viewH * 0.42);
+    state.camY += (camTarget - state.camY) * 0.12;
+
+    if(player.y > state.camY + state.viewH + 60){
+      die(); return;
+    }
+
+    extendWorld();
+    if(state.score > state.bestScore) state.bestScore = state.score;
+    updateButtons();
+  }
+
+
+  function drawBackground(){
+    const w = currentWorld();
+    ctx.fillStyle = w.paper;
+    ctx.fillRect(0,0,state.viewW,state.viewH);
+
+    ctx.strokeStyle = w.grid;
+    ctx.lineWidth = 1;
+    for(let x=0;x<state.viewW;x+=20){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,state.viewH); ctx.stroke(); }
+    for(let y=0;y<state.viewH;y+=20){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(state.viewW,y); ctx.stroke(); }
+
+    if(state.selectedWorld === 'galaxy'){
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+      for(let i=0;i<40;i++){
+        const x = (i * 83) % state.viewW;
+        const y = (i * 137 + Math.floor(state.camY*0.15)) % (state.viewH+80) - 40;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x, y, (i % 3) + 1.2, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = '#b8b4ff';
+      for(let i=0;i<6;i++){
+        const y = ((i*180) + (state.camY*0.08 % 180));
+        ctx.beginPath();
+        ctx.arc((i*110)%state.viewW, y, 56, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }else if(state.selectedWorld === 'western'){
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = '#cfb07c';
+      for(let i=0;i<5;i++){
+        const bx = 18 + i*120;
+        const by = 90 + (i%2)*180;
+        ctx.fillRect(bx, by, 46, 28);
+        ctx.fillStyle='#b8965a'; ctx.fillRect(bx+4,by+4,38,20);
+        ctx.strokeStyle = '#8b6a37';
+        ctx.lineWidth = 2;
+        for(let k=1;k<4;k++){
+          ctx.beginPath();
+          ctx.moveTo(bx + k*10, by);
+          ctx.lineTo(bx + k*10, by+28);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }else if(state.selectedWorld === 'football'){
+      ctx.save();
+      ctx.globalAlpha = 0.14;
+      ctx.strokeStyle = '#2d9b2d';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(state.viewW*0.5, 0);
+      ctx.lineTo(state.viewW*0.5, state.viewH);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(state.viewW*0.5, state.viewH*0.5, 60, 0, Math.PI*2);
+      ctx.stroke();
+
+      const goalY = 120 + ((state.camY * 0.18) % 320);
+      ctx.strokeStyle = '#bfc7d1';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(state.viewW - 92, goalY, 54, 38);
+      ctx.fillStyle='#ffffff22'; ctx.fillRect(state.viewW - 92, goalY, 54, 38);
+      ctx.restore();
+    }else if(state.selectedWorld === 'ice'){
+      ctx.save();
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = '#d8f6ff';
+      for(let i=0;i<7;i++){
+        const x = 40 + i*90;
+        const y = 120 + (i%3)*180;
+        ctx.beginPath();
+        ctx.moveTo(x,y); ctx.lineTo(x+16,y+34); ctx.lineTo(x-16,y+34);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawCoin(x,y){
+    ctx.fillStyle = '#ffcc3c';
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(x,y,10,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f8e69c';
+    ctx.beginPath(); ctx.arc(x-2,y-2,3,0,Math.PI*2); ctx.fill();
+  }
+
+  function drawPlatform(p){
+    const w = currentWorld();
+    const y = sy(p.y);
+    if(y < -80 || y > state.viewH + 80) return;
+    if(p.type === 'brown'){
+      drawRoundRect(p.x,y,p.w/2-6,24,14,w.brown,'#111');
+      drawRoundRect(p.x+p.w/2+6,y,p.w/2-6,24,14,w.brown,'#111');
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(p.x+p.w/2-4,y+3); ctx.lineTo(p.x+p.w/2-8,y+9); ctx.lineTo(p.x+p.w/2-2,y+15); ctx.lineTo(p.x+p.w/2-6,y+21);
+      ctx.moveTo(p.x+p.w/2+4,y+3); ctx.lineTo(p.x+p.w/2+8,y+9); ctx.lineTo(p.x+p.w/2+2,y+15); ctx.lineTo(p.x+p.w/2+6,y+21);
+      ctx.stroke();
+    } else {
+      drawRoundRect(p.x,y,p.w,26,14,p.type==='blue' ? w.blue : w.green,'#111');
+    }
+    if(p.hasSpring){
+      const cx = p.x + p.w/2;
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      for(let i=0;i<5;i++){
+        const yy = y - 1 - i*5;
+        ctx.moveTo(cx-13,yy);
+        ctx.quadraticCurveTo(cx,yy-4,cx+13,yy);
+      }
+      ctx.stroke();
+    }
+    if(p.hasProp){
+      const cx = p.x + p.w/2, cy = y - 23;
+      ctx.fillStyle = '#ef5b37'; ctx.strokeStyle = '#111'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx,cy,10,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#eee'; ctx.fillRect(cx-14,cy-3,28,6); ctx.strokeRect(cx-14,cy-3,28,6);
+    }
+    if(p.coin) drawCoin(p.x+p.w/2, y-18);
+  }
+
+  function drawMonster(m){
+    const y = sy(m.y);
+    if(y < -100 || y > state.viewH + 100) return;
+    ctx.save();
+    ctx.translate(m.x, y);
+    ctx.fillStyle = '#9a6a32'; ctx.strokeStyle = '#111'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-18,20); ctx.bezierCurveTo(-34,8,-30,-22,-10,-28);
+    ctx.bezierCurveTo(6,-34,26,-22,24,6); ctx.bezierCurveTo(22,20,10,24,-6,24); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f4c8d6'; ctx.beginPath(); ctx.arc(-10,-2,10,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(-9,-2,2.4,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-4,14); ctx.lineTo(8,12); ctx.lineTo(13,17); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-8,24); ctx.lineTo(-8,34); ctx.moveTo(4,24); ctx.lineTo(5,34); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBird(x, y, skinKey, facing, propeller){
+    const skin = skins[skinKey];
+    ctx.save();
+    ctx.translate(x, y);
+
+    const bob = Math.sin(performance.now() * 0.012) * 1.5;
+    ctx.translate(0, bob);
+
+    if(facing < 0) ctx.scale(-1,1);
+
+    if(propeller > 0){
+      ctx.fillStyle='#ef5b37'; ctx.strokeStyle='#111'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(-7,-42); ctx.lineTo(0,-54); ctx.lineTo(7,-42); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,-32); ctx.lineTo(0,-52); ctx.stroke();
+      const r = performance.now()*0.03;
+      ctx.save(); ctx.translate(0,-56); ctx.rotate(r);
+      ctx.beginPath(); ctx.moveTo(-22,0); ctx.lineTo(22,0); ctx.moveTo(0,-4); ctx.lineTo(0,4); ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 4;
+
+    if(chickSprite.complete && chickSprite.naturalWidth > 0){
+      const w = 74;
+      const h = 74;
+      ctx.drawImage(chickSprite, -w/2, -h/2 + 2, w, h);
+
+      // recolor scarf/body stripes subtly by overlaying chosen skin outfit
+      ctx.globalAlpha = 0.32;
+      ctx.fillStyle = skin.outfit;
+      ctx.fillRect(-16, 14, 30, 16);
+      ctx.globalAlpha = 1;
+    }else{
+      ctx.fillStyle = skin.color;
+      ctx.beginPath();
+      ctx.arc(0,0,24,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawPlayer(){ drawBird(player.x, sy(player.y)-2, state.selectedSkin, player.facing, player.propeller); }
+
+  function drawBullets(){
+    for(const b of bullets){
+      const y = sy(b.y);
+      if(y < -20 || y > state.viewH + 20) continue;
+      ctx.fillStyle = '#fff8ef';
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.ellipse(b.x, y, 4.2, 5.6, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    for(const b of enemyBullets){
+      const y = sy(b.y);
+      if(y < -20 || y > state.viewH + 20) continue;
+      ctx.fillStyle = '#fff8ef';
+      ctx.strokeStyle = '#e84b37';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.ellipse(b.x, y, 4.2, 5.6, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+
+  function drawParticles(){
+    for(const p of particles){
+      const y = sy(p.y);
+      ctx.globalAlpha = Math.max(0, p.life / 30);
+      ctx.fillStyle = p.c;
+      ctx.beginPath(); ctx.arc(p.x, y, p.r, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawBigScore(){
+    ctx.fillStyle = '#111';
+    ctx.font = '900 92px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(Math.max(0, Math.floor(state.score))), state.viewW * 0.5, 128);
+  }
+
+  function render(){
+    ctx.clearRect(0,0,state.viewW,state.viewH);
+    drawBackground();
+    for(const p of platforms) drawPlatform(p);
+    for(const m of monsters) drawMonster(m);
+    drawParticles();
+    drawBullets();
+    drawPlayer();
+    drawBigScore();
+
+    if(state.paused && state.screen==='none'){
+      ctx.fillStyle = 'rgba(0,0,0,.15)';
+      ctx.fillRect(0,0,state.viewW,state.viewH);
+      ctx.fillStyle = '#111';
+      ctx.font = '700 48px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Pause', state.viewW/2, state.viewH/2);
+    }
+  }
+
+  function rebuildWorldUI(){
+    worldGrid.innerHTML = '';
+    for(const [key, w] of Object.entries(worlds)){
+      const btn = document.createElement('button');
+      btn.className = 'world-btn' + (state.selectedWorld === key ? ' active' : '');
+      btn.innerHTML = `<div>${w.name}</div>`;
+      btn.onclick = () => { state.selectedWorld = key; saveGame(); rebuildWorldUI(); };
+      worldGrid.appendChild(btn);
+    }
+  }
+
+  function drawSkinPreview(){
+    skinPreview.innerHTML = '';
+    const cvs = document.createElement('canvas');
+    cvs.width = 180; cvs.height = 80;
+    cvs.style.width='180px'; cvs.style.height='80px';
+    skinPreview.appendChild(cvs);
+    const c = cvs.getContext('2d');
+    c.clearRect(0,0,180,80);
+    c.fillStyle = '#fafafa';
+    c.fillRect(0,0,180,80);
+    const sk = skins[state.selectedSkin];
+    c.strokeStyle='#111'; c.lineWidth=3;
+    c.fillStyle=sk.color;
+    c.beginPath(); c.ellipse(80,28,17,19,0,0,Math.PI*2); c.fill(); c.stroke();
+    c.beginPath(); c.ellipse(78,47,15,12,0,0,Math.PI*2); c.fill(); c.stroke();
+    c.fillStyle='#111'; c.beginPath(); c.arc(74,24,2.1,0,Math.PI*2); c.arc(81,24,2.1,0,Math.PI*2); c.fill();
+    c.fillStyle='#f4a23d'; c.beginPath(); c.moveTo(93,28); c.lineTo(110,32); c.lineTo(93,36); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = sk.outfit;
+    const rr = (x,y,w,h,r)=>{ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.fill(); c.stroke(); };
+    rr(63,43,30,8,4); rr(63,51,30,8,4);
+  }
+
+  function populateShop(){
+    shopGrid.innerHTML = '';
+    drawSkinPreview();
+    for(const [key, skin] of Object.entries(skins)){
+      const btn = document.createElement('button');
+      btn.className = 'skin-btn' + (state.selectedSkin === key ? ' active' : '');
+      let status = '';
+      if(skin.owned){
+        status = `<div class="owned">${state.selectedSkin===key ? 'Ausgewählt' : 'Besitzt du'}</div>`;
+      }else{
+        status = `<div class="owned">Gratis zum Testen</div>`;
+      }
+      btn.innerHTML = `<div>${skin.name}</div><div class="price">${status}</div>`;
+      btn.onclick = () => {
+        if(!skin.owned){
+          if(state.coinsTotal >= skin.price){
+            state.coinsTotal -= skin.price;
+            skin.owned = true;
+          } else return;
+        }
+        state.selectedSkin = key;
+        saveGame();
+        updateButtons();
+        populateShop();
+      };
+      shopGrid.appendChild(btn);
+    }
+  }
+
+  playBtn.onclick = () => startRun();
+  retryBtn.onclick = () => startRun();
+  goMainBtn.onclick = () => openMain();
+  openShopBtn.onclick = () => { showScreen('shop'); populateShop(); updateButtons(); };
+  closeShopBtn.onclick = () => { showScreen('main'); updateButtons(); };
+  
+  addEventListener('deviceorientation', e => {
+    if(state.controlMode !== 'tilt') return;
+    const gamma = typeof e.gamma === 'number' ? e.gamma : 0;
+    input.tilt = Math.max(-1, Math.min(1, gamma / 22));
+  });
+
+modeBtn.onclick = async () => {
+    if(state.controlMode === 'keyboard'){
+      state.controlMode = 'tilt';
+      try{
+        if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+          const res = await DeviceOrientationEvent.requestPermission();
+          input.tiltReady = res === 'granted';
+        } else input.tiltReady = true;
+      }catch(e){ input.tiltReady = false; }
+      overlayTip.style.display = 'block';
+      overlayTip.textContent = input.tiltReady ? 'Handy/iPad-Modus: Gerät kippen für links/rechts. Auf den Bildschirm tippen = Springen + Schießen.' : 'Sensoren erlauben und nochmal versuchen.';
+    } else {
+      state.controlMode = 'keyboard';
+      overlayTip.style.display = 'block';
+      overlayTip.textContent = 'Tastatur-Modus: A/D oder ←/→ bewegen, W / ↑ springen, Leertaste schießt nach oben.';
+    }
+    updateButtons();
+  };
+
+  loadSave();
+  rebuildWorldUI();
+  populateShop();
+  updateButtons();
+  openMain();
+
+  let acc = 0, last = performance.now();
+  function loop(now){
+    const dt = Math.min(33, now - last);
+    last = now;
+    acc += dt;
+    while(acc >= 1000/60){
+      tick();
+      acc -= 1000/60;
+    }
+    render();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
