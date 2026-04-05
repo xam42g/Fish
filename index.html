@@ -44,7 +44,6 @@
       display: none;
       align-items: center;
       justify-content: center;
-      align-items: center;
       padding:
         max(16px, env(safe-area-inset-top))
         16px
@@ -319,8 +318,8 @@
     </div>
 
     <div id="leaderboardOverlay" class="overlay">
-      <div class="card" style="max-height:min(82dvh, 760px); position:relative; padding-top:56px; margin:auto;">
-        <button id="closeLeaderboardBtn" class="secondary" style="position:sticky; top:0; float:right; width:auto; padding:8px 12px; font-size:13px; z-index:5; margin:-42px 0 8px 0; background:rgba(11,18,34,0.98);">Close</button><h2 style="display:flex;justify-content:space-between;align-items:center; clear:both;">Leaderboard <button id="renameBtn" class="secondary" style="width:auto;padding:6px 10px;font-size:12px;">Change Name (200)</button></h2>
+      <div class="card">
+        <h2 style="display:flex;justify-content:space-between;align-items:center;">Leaderboard <button id="renameBtn" class="secondary" style="width:auto;padding:6px 10px;font-size:12px;">Change Name (200)</button></h2>
         <p class="sub"></p>
         <form id="leaderboardForm">
           <input id="lbInlineUrlInput" type="text" placeholder="Supabase URL" />
@@ -331,7 +330,7 @@
         <p class="sub"></p><p class="sub" style="font-size:12px;"></p>
         <div id="leaderboardList" class="leaderboardList"></div>
         <div id="leaderboardNote" class="leaderNote"></div>
-        
+        <button id="closeLeaderboardBtn" class="secondary" style="margin-top:14px;">Close</button>
       </div>
     </div>
 
