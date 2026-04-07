@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Küken Jump Deluxe</title>
+<style>
+body{
+    margin:0;
+    background:#0f172a;
+    font-family:system-ui;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+canvas{
+    background:#111827;
+    border-radius:20px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.6);
+}
+.ui{
+    position:absolute;
+    top:20px;
+    width:100%;
+    text-align:center;
+    color:white;
+    font-weight:600;
+}
+.score{
+    font-size:32px;
+}
+</style>
+</head>
+<body>
+
+<div class="ui">
+<div class="score" id="score">0</div>
+</div>
+
+<canvas id="game" width="360" height="640"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = {x:180,y:500,vy:0};
+let platforms = [];
+
+function reset(){
+    platforms=[];
+    for(let i=0;i<10;i++){
+        platforms.push({
+            x:Math.random()*300,
+            y:i*70
+        });
+    }
+}
+
+reset();
+
+let score=0;
+
+function update(){
+    player.vy += 0.4;
+    player.y += player.vy;
+
+    if(player.y > 400){
+        player.y = 400;
+        platforms.forEach(p => p.y -= player.vy);
+        score++;
+    }
+
+    platforms.forEach(p=>{
+        if(player.vy > 0 &&
+           player.x > p.x &&
+           player.x < p.x+60 &&
+           player.y > p.y &&
+           player.y < p.y+10){
+            player.vy = -10;
+        }
+    });
+
+    platforms = platforms.map(p=>{
+        if(p.y > 640){
+            return {x:Math.random()*300,y:0};
+        }
+        return p;
+    });
+}
+
+function draw(){
+    ctx.clearRect(0,0,360,640);
+
+    let g = ctx.createLinearGradient(0,0,0,640);
+    g.addColorStop(0,"#22c55e");
+    g.addColorStop(1,"#16a34a");
+    ctx.fillStyle=g;
+    ctx.fillRect(0,0,360,640);
+
+    ctx.fillStyle="#065f46";
+    platforms.forEach(p=>{
+        ctx.fillRect(p.x,p.y,60,10);
+    });
+
+    ctx.fillStyle="#fde047";
+    ctx.beginPath();
+    ctx.arc(player.x,player.y,12,0,Math.PI*2);
+    ctx.fill();
+
+    document.getElementById("score").innerText = score;
+}
+
+function loop(){
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+
+document.addEventListener("mousemove",(e)=>{
+    const rect = canvas.getBoundingClientRect();
+    player.x = (e.clientX - rect.left);
+});
+
+loop();
+</script>
+
+</body>
+</html>
