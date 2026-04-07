@@ -20,10 +20,6 @@
       position: relative;
       width: 100vw;
       height: 100dvh;
-      aspect-ratio: 16 / 9;
-      max-width: calc(100dvh * 16 / 9);
-      max-height: calc(100vw * 9 / 16);
-      margin: auto;
       overflow: hidden;
       background: #060b14;
     }
@@ -261,6 +257,34 @@
       line-height: 1.4;
     }
 
+
+    .infoPanel {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .infoPanelTitle {
+      font-size: 12px;
+      color: #9db4cf;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 8px;
+    }
+    .infoPanelText {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #d9e8f7;
+    }
+    .menuHint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #9db4cf;
+      text-align: center;
+      line-height: 1.45;
+    }
+
     @media (max-width: 720px) {
       .card {
         width: min(96vw, 420px);
@@ -284,11 +308,16 @@
     <div id="menuOverlay" class="overlay show">
       <div class="card">
         <h1>Galaxy Arena</h1>
-        <p class="sub"></p>
-        <input id="nameInput" type="text" maxlength="16" placeholder="Dein Name" />
-        <button id="startBtn">Spiel starten</button>
-        <button id="openShopFromMenu" class="secondary">Shop öffnen</button>
-        <button id="openLeaderboardFromMenu" class="secondary">Leaderboard</button>
+        <p class="sub">Survive the arena, collect coins, and outlast every wave.</p>
+        <input id="nameInput" type="text" maxlength="16" placeholder="Enter your pilot name" />
+        <button id="startBtn">Start Game</button>
+        <button id="openShopFromMenu" class="secondary">Store</button>
+        <button id="openLeaderboardFromMenu" class="secondary">High Scores</button>
+        <div class="infoPanel">
+          <div class="infoPanelTitle">Mission Briefing</div>
+          <div class="infoPanelText">Avoid enemies, collect coins, and use your abilities at the right moment. The longer you survive, the more pressure the arena creates.</div>
+        </div>
+        <div class="menuHint">Keyboard: WASD / Arrow Keys · Space Dash · Q Shield · E Teleport · Shift Overdrive</div>
 
       </div>
     </div>
@@ -296,7 +325,7 @@
     <div id="lbSetupOverlay" class="overlay" style="display:none !important;">
       <div class="card">
         <h2>Leaderboard aktivieren</h2>
-        <p class="sub"></p>
+        <p class="sub">Unlock visual upgrades and useful ability options for future runs.</p>
         <input id="lbUrlInput" type="text" placeholder="Supabase URL" />
         <input id="lbKeyInput" type="text" placeholder="Publishable Key" />
         <button id="activateLbBtn">Activate</button>
@@ -307,7 +336,7 @@
 
     <div id="shopOverlay" class="overlay">
       <div class="card">
-        <h2>Shop</h2><div style="margin-bottom:10px;">Coins: <b id="shopCoins">0</b></div>
+        <h2>Store</h2><div style="margin-bottom:10px;">Coins: <b id="shopCoins">0</b></div>
         <p class="sub"></p>
         <div class="sectionLabel">Abilities</div><div id="abilityGrid" class="shopGrid"></div><div class="sectionLabel">Skins</div>
         <div class="shopGrid" id="skinGrid"></div>
@@ -336,10 +365,10 @@
 
     <div id="gameOverOverlay" class="overlay">
       <div class="card">
-        <h2>Game Over</h2>
+        <h2>Mission Failed</h2>
         <p class="sub" id="finalSummary">Score: 0 · Coins: 0</p>
-        <button id="restartBtn">Restart</button>
-        <button id="backMenuBtn" class="secondary">Menu</button>
+        <button id="restartBtn">Play Again</button>
+        <button id="backMenuBtn" class="secondary">Main Menu</button>
       </div>
     </div>
 
@@ -372,8 +401,8 @@
         <div class="dockValue" id="speedStatus">Ready</div>
       </div>
       <div class="dockButtons">
-        <button id="shopBtn" class="secondary">Shop</button>
-        <button id="leaderboardBtn" class="secondary">Leaderboard</button>
+        <button id="shopBtn" class="secondary">Store</button>
+        <button id="leaderboardBtn" class="secondary">High Scores</button>
       </div>
     </div>
   </div>
@@ -865,26 +894,8 @@ nameInput.addEventListener("input", () => {
 
     function hideLeaderboard() {
       leaderboardOverlay.classList.remove("show");
-
       if (menuOverlay.classList.contains("show")) return;
-
-      if (gameOverOverlay.classList.contains("show") || state === "gameover") {
-        resetRun();
-        gameOverOverlay.classList.remove("show");
-      }
-
-      if (typeof virtualStick !== "undefined") {
-        virtualStick.active = false;
-        virtualStick.x = 0;
-        virtualStick.y = 0;
-      }
-
-      for (const k in keys) keys[k] = false;
-
-      hudTop.style.display = "flex";
-      dock.style.display = "none";
-      lastTime = performance.now();
-      state = "play";
+      if (state === "pause") state = "play";
     }
 
     function resumeFromGameOverOverlay() {
@@ -893,7 +904,6 @@ nameInput.addEventListener("input", () => {
         gameOverOverlay.classList.remove("show");
         hudTop.style.display = "flex";
         dock.style.display = "none";
-        lastTime = performance.now();
         state = "play";
       }
     }
@@ -1341,7 +1351,7 @@ nameInput.addEventListener("input", () => {
         if (error) throw error;
 
         if (!data || data.length === 0) {
-          leaderboardList.innerHTML = '<div class="leaderRow"><div class="leaderRank">-</div><div class="leaderName">No scores yet</div><div class="leaderScore">0</div></div>';
+          leaderboardList.innerHTML = '<div class="leaderRow"><div class="leaderRank">-</div><div class="leaderName">No scores recorded yet</div><div class="leaderScore">0</div></div>';
           leaderboardNote.textContent = "Sobald jemand spielt, erscheint der Highscore hier.";
           return;
         }
@@ -1362,7 +1372,7 @@ nameInput.addEventListener("input", () => {
 
         leaderboardNote.textContent = "Pro Gerät gibt es nur einen Highscore-Eintrag.";
       } catch (e) {
-        leaderboardList.innerHTML = '<div class="leaderRow"><div class="leaderRank">!</div><div class="leaderName">Load error</div><div class="leaderScore">-</div></div>';
+        leaderboardList.innerHTML = '<div class="leaderRow"><div class="leaderRank">!</div><div class="leaderName">Loading error</div><div class="leaderScore">-</div></div>';
         leaderboardNote.textContent = "In Supabase müssen score, name, device_id und game_id vorhanden sein.";
         console.error(e);
       }
@@ -1443,7 +1453,7 @@ nameInput.addEventListener("input", () => {
       showLeaderboard(false);
     });
     closeShopBtn.addEventListener("click", () => { hideShop(); resumeFromGameOverOverlay(); });
-    closeLeaderboardBtn.addEventListener("click", hideLeaderboard);
+    closeLeaderboardBtn.addEventListener("click", () => { hideLeaderboard(); resumeFromGameOverOverlay(); });
     activateLbBtn.addEventListener("click", activateLeaderboard);
     resetLbBtn.addEventListener("click", resetLeaderboardSetup);
     skipLbBtn.addEventListener("click", () => {
@@ -1511,7 +1521,7 @@ function buildAbilities(){
   const list = [
     {id:"speed",name:"Speed",price:50,note:"Shift · 3s aktiv · 14s Cooldown"},
     {id:"teleport",name:"Teleport",price:150,note:"E · 10s Cooldown"},
-    {id:"shield",name:"Shield",price:500,note:"Q · 3s aktiv · 18s Cooldown"}
+    {id:"shield",name:"Shield Matrix",price:500,note:"Q · 3s duration · 18s cooldown"}
   ];
   list.forEach(a=>{
     const d=document.createElement("div");
@@ -1733,8 +1743,8 @@ updateAbilityUI();
       const uniqueRows = [...bestByName.values()].sort((a, b) => b.score - a.score).slice(0, 20);
 
       if (!uniqueRows.length) {
-        list.innerHTML = '<div class="leaderRow"><div class="leaderRank">-</div><div class="leaderName">No scores yet</div><div class="leaderScore">0</div></div>';
-        note.textContent = "Top 20 aus leaderboard.";
+        list.innerHTML = '<div class="leaderRow"><div class="leaderRank">-</div><div class="leaderName">No scores recorded yet</div><div class="leaderScore">0</div></div>';
+        note.textContent = "Top 20 Pilots aus leaderboard.";
         return;
       }
 
@@ -1747,9 +1757,9 @@ updateAbilityUI();
         list.appendChild(div);
       });
 
-      note.textContent = "Highest score only per player.";
+      note.textContent = "Only the best score for each player is shown.";
     } catch (e) {
-      list.innerHTML = '<div class="leaderRow"><div class="leaderRank">!</div><div class="leaderName">Load error</div><div class="leaderScore">-</div></div>';
+      list.innerHTML = '<div class="leaderRow"><div class="leaderRank">!</div><div class="leaderName">Loading error</div><div class="leaderScore">-</div></div>';
       note.textContent = "Error: " + (e && e.message ? e.message : e);
       console.error(e);
     }
@@ -1772,8 +1782,8 @@ updateAbilityUI();
     if (gameOver) gameOver.classList.remove("show");
     if (overlay) overlay.classList.add("show");
     if (form) form.style.display = "none";
-    if (intro) intro.textContent = "Leaderboard active.";
-    if (topInfo && topInfo.length >= 3) topInfo[2].textContent = "Highest score only per player.";
+    if (intro) intro.textContent = "Online leaderboard active.";
+    if (topInfo && topInfo.length >= 3) topInfo[2].textContent = "Only the best score for each player is shown.";
     loadHighscores();
   }
 
@@ -1958,8 +1968,8 @@ if (renameBtn) {
 
       list.innerHTML = "";
       if (!uniqueRows.length) {
-        list.innerHTML = '<div class="leaderRow"><div class="leaderRank">-</div><div class="leaderName">No scores yet</div><div class="leaderScore">0</div></div>';
-        note.textContent = "Top 20 aus leaderboard.";
+        list.innerHTML = '<div class="leaderRow"><div class="leaderRank">-</div><div class="leaderName">No scores recorded yet</div><div class="leaderScore">0</div></div>';
+        note.textContent = "Top 20 Pilots aus leaderboard.";
         return;
       }
 
@@ -1974,9 +1984,9 @@ if (renameBtn) {
         list.appendChild(div);
       });
 
-      note.textContent = "Highest score only per player.";
+      note.textContent = "Only the best score for each player is shown.";
     } catch (e) {
-      list.innerHTML = '<div class="leaderRow"><div class="leaderRank">!</div><div class="leaderName">Load error</div><div class="leaderScore">-</div></div>';
+      list.innerHTML = '<div class="leaderRow"><div class="leaderRank">!</div><div class="leaderName">Loading error</div><div class="leaderScore">-</div></div>';
       note.textContent = "Error: " + (e && e.message ? e.message : e);
       console.error("fixedLoadLeaderboard", e);
     }
@@ -1994,8 +2004,8 @@ if (renameBtn) {
     if (gameOver) gameOver.classList.remove("show");
     if (overlay) overlay.classList.add("show");
     if (form) form.style.display = "none";
-    if (intro) intro.textContent = "Leaderboard active.";
-    if (subs && subs.length >= 3) subs[2].textContent = "Highest score only per player.";
+    if (intro) intro.textContent = "Online leaderboard active.";
+    if (subs && subs.length >= 3) subs[2].textContent = "Only the best score for each player is shown.";
 
     await fixedLoadLeaderboard();
 
@@ -2057,9 +2067,9 @@ if (renameBtn) {
     const nameInput = document.getElementById("nameInput");
     if (nameInput) nameInput.placeholder = "Your name";
     const menuSub = document.querySelector("#menuOverlay .sub");
-    if (menuSub) menuSub.textContent = "Dodge, collect coins, survive.";
+    if (menuSub) menuSub.textContent = "Survive the arena, collect coins, and outlast every wave.";
     const shopSub = document.querySelector("#shopOverlay .sub");
-    if (shopSub) shopSub.textContent = "Buy skins and backgrounds with coins.";
+    if (shopSub) shopSub.textContent = "Unlock visual upgrades and useful ability options for future runs.";
   }
 
   // Reward save state
@@ -2178,13 +2188,13 @@ if (renameBtn) {
   function rewardSkinButtonText(item) {
     if (save.selectedSkin === item.id) return "Equipped";
     if (rewardSkinUnlocked(item.id)) return "Equip";
-    return "Ads " + Math.min(save.adCount, item.ads) + "/" + item.ads;
+    return "Milestone " + Math.min(save.adCount, item.ads) + "/" + item.ads;
   }
 
   function rewardBgButtonText(item) {
     if (save.selectedBackground === item.id) return "Active";
-    if (rewardBackgroundUnlocked(item.id)) return "Use";
-    return "Ads " + Math.min(save.adCount, item.ads) + "/" + item.ads;
+    if (rewardBackgroundUnlocked(item.id)) return "Equip";
+    return "Milestone " + Math.min(save.adCount, item.ads) + "/" + item.ads;
   }
 
   const oldHandleSkinBuy = handleSkinBuy;
@@ -2293,7 +2303,7 @@ if (renameBtn) {
     const rewardSection = document.createElement("div");
     rewardSection.className = "rewardSection rewardSectionMixed";
     rewardSection.innerHTML = `
-      <div class="sectionLabel">Ad Rewards</div>
+      <div class="sectionLabel">Extras</div>
       <div class="shopGrid" id="rewardActionGrid"></div>
     `;
     card.insertBefore(rewardSection, closeBtn);
@@ -2301,7 +2311,7 @@ if (renameBtn) {
     const rewardActionGrid = document.getElementById("rewardActionGrid");
 
     [
-            { id: "double", label: "Watch Ad", note: "Next Run x2 Coins (Cost: 70)" },
+            { id: "double", label: "Boost", note: "Next Run x2 Coins · Cost 70" },
           ].forEach(action => {
       const item = document.createElement("div");
       item.className = "shopItem";
@@ -2328,7 +2338,7 @@ if (renameBtn) {
       item.innerHTML =
         '<div class="shopPreview" style="background:' + itemData.color + ';"></div>' +
         '<div><strong>' + itemData.name + '</strong></div>' +
-        '<div class="priceText">Ads ' + Math.min(save.adCount, itemData.ads) + '/' + itemData.ads + '</div>';
+        '<div class="priceText">Milestone ' + Math.min(save.adCount, itemData.ads) + '/' + itemData.ads + '</div>';
       const btn = document.createElement("button");
       btn.className = "secondary";
       btn.textContent = rewardSkinButtonText(itemData);
@@ -2344,7 +2354,7 @@ if (renameBtn) {
       item.innerHTML =
         '<div class="shopPreview" style="' + backgroundPreviewStyle(itemData.id) + '"></div>' +
         '<div><strong>' + itemData.name + '</strong></div>' +
-        '<div class="priceText">Ads ' + Math.min(save.adCount, itemData.ads) + '/' + itemData.ads + '</div>';
+        '<div class="priceText">Milestone ' + Math.min(save.adCount, itemData.ads) + '/' + itemData.ads + '</div>';
       const btn = document.createElement("button");
       btn.className = "secondary";
       btn.textContent = rewardBgButtonText(itemData);
@@ -2456,13 +2466,13 @@ if (renameBtn) {
   function rewardSkinButtonText(item) {
     if (save.selectedSkin === item.id) return "Equipped";
     if (rewardSkinUnlocked(item.id)) return "Equip";
-    return "Watch";
+    return "Unlock";
   }
 
   function rewardBgButtonText(item) {
     if (save.selectedBackground === item.id) return "Active";
-    if (rewardBackgroundUnlocked(item.id)) return "Use";
-    return "Watch";
+    if (rewardBackgroundUnlocked(item.id)) return "Equip";
+    return "Unlock";
   }
 
   // Override handlers for reward items
@@ -2577,7 +2587,7 @@ if (renameBtn) {
     const rewardSection = document.createElement("div");
     rewardSection.className = "rewardSectionMixed rewardActionsOnly";
     rewardSection.innerHTML = `
-      <div class="sectionLabel">Ad Rewards</div>
+      <div class="sectionLabel">Extras</div>
       <div class="shopGrid" id="rewardActionGrid"></div>
     `;
     card.insertBefore(rewardSection, closeBtn);
@@ -2585,7 +2595,7 @@ if (renameBtn) {
     const rewardActionGrid = document.getElementById("rewardActionGrid");
 
     [
-            { id: "double", label: "Watch Ad", note: save.rewardDoubleCoinsNextRun ? "x2 ready - play first" : "Next Run x2 Coins (Cost: 70)" },
+            { id: "double", label: "Boost", note: save.rewardDoubleCoinsNextRun ? "x2 ready - play first" : "Next Run x2 Coins · Cost 70" },
           ].forEach(action => {
       const item = document.createElement("div");
       item.className = "shopItem";
@@ -2611,7 +2621,7 @@ if (renameBtn) {
       item.innerHTML =
         '<div class="shopPreview" style="background:' + itemData.color + ';"></div>' +
         '<div><strong>' + itemData.name + '</strong></div>' +
-        '<div class="priceText">Ads ' + Math.min(getProgress(itemData.id), itemData.ads) + '/' + itemData.ads + '</div>';
+        '<div class="priceText">Milestone ' + Math.min(getProgress(itemData.id), itemData.ads) + '/' + itemData.ads + '</div>';
       const btn = document.createElement("button");
       btn.className = "secondary";
       btn.textContent = rewardSkinButtonText(itemData);
@@ -2629,7 +2639,7 @@ if (renameBtn) {
       item.innerHTML =
         '<div class="shopPreview" style="' + backgroundPreviewStyle(itemData.id) + '"></div>' +
         '<div><strong>' + itemData.name + '</strong></div>' +
-        '<div class="priceText">Ads ' + Math.min(getProgress(itemData.id), itemData.ads) + '/' + itemData.ads + '</div>';
+        '<div class="priceText">Milestone ' + Math.min(getProgress(itemData.id), itemData.ads) + '/' + itemData.ads + '</div>';
       const btn = document.createElement("button");
       btn.className = "secondary";
       btn.textContent = rewardBgButtonText(itemData);
@@ -2804,16 +2814,16 @@ if (renameBtn) {
       const subs = document.querySelectorAll("#leaderboardOverlay .sub");
       subs.forEach((el, i) => {
         if (i === 0) el.textContent = "";
-        if (i === 1) el.textContent = "Top 20";
-        if (i === 2) el.textContent = "Highest score only per player.";
+        if (i === 1) el.textContent = "Top 20 Pilots";
+        if (i === 2) el.textContent = "Only the best score for each player is shown.";
       });
 
       const note = document.getElementById("leaderboardNote");
       if (note) {
         note.textContent = note.textContent
-          .replace("Leaderboard ist direkt aktiviert.", "Leaderboard active.")
-          .replace(/Pro Spieler wird nur der höchste Score gezeigt\./g, "Highest score only per player.")
-          .replace("Fehler beim Laden", "Load error")
+          .replace("Leaderboard ist direkt aktiviert.", "Online leaderboard active.")
+          .replace(/Pro Spieler wird nur der höchste Score gezeigt\./g, "Only the best score for each player is shown.")
+          .replace("Fehler beim Laden", "Loading error")
           .replace("Fehler: ", "Error: ");
       }
 
@@ -2844,27 +2854,14 @@ if (renameBtn) {
   if (oldHideLeaderboardFix) {
     hideLeaderboard = function() {
       oldHideLeaderboardFix.apply(this, arguments);
-
       if (returnToGameOver && typeof resetRun === "function" && typeof gameOverOverlay !== "undefined") {
         resetRun();
         gameOverOverlay.classList.remove("show");
+        if (typeof hudTop !== "undefined") hudTop.style.display = "flex";
+        if (typeof dock !== "undefined") dock.style.display = "none";
+        if (typeof state !== "undefined") state = "play";
         returnToGameOver = false;
       }
-
-      if (typeof virtualStick !== "undefined") {
-        virtualStick.active = false;
-        virtualStick.x = 0;
-        virtualStick.y = 0;
-      }
-
-      if (typeof keys !== "undefined") {
-        for (const k in keys) keys[k] = false;
-      }
-
-      if (typeof hudTop !== "undefined") hudTop.style.display = "flex";
-      if (typeof dock !== "undefined") dock.style.display = "none";
-      if (typeof lastTime !== "undefined") lastTime = performance.now();
-      if (typeof state !== "undefined" && state !== "menu") state = "play";
     };
   }
 
@@ -2872,8 +2869,8 @@ if (renameBtn) {
     const subs = document.querySelectorAll("#leaderboardOverlay .sub");
     subs.forEach((el, i) => {
       if (i === 0) el.textContent = "";
-      if (i === 1) el.textContent = "Top 20";
-      if (i === 2) el.textContent = "Highest score only per player.";
+      if (i === 1) el.textContent = "Top 20 Pilots";
+      if (i === 2) el.textContent = "Only the best score for each player is shown.";
     });
   });
 })();
@@ -3374,6 +3371,792 @@ if (renameBtn) {
   refreshModeButtons();
   updateTouchUiVisibility();
   refreshTouchAbilityButtons();
+})();
+</script>
+
+
+<style id="ga-final-hotfix-style">
+  #touchAbilities {
+    bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+  }
+  #joystickWrap {
+    bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+  }
+  @media (max-width: 720px) {
+    #touchAbilities {
+      bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+    }
+    #joystickWrap {
+      bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+    }
+  }
+
+  #leaderboardOverlay .card {
+    max-height: min(82dvh, 760px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-top: 18px !important;
+  }
+
+  #leaderboardTopBar {
+    position: sticky;
+    top: 0;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: -4px 0 12px 0;
+    padding: 2px 0 10px 0;
+    background: rgba(11, 18, 34, 0.98);
+  }
+
+  #leaderboardTopBar .lbTitle {
+    font-size: 22px;
+    font-weight: 700;
+    flex: 1;
+  }
+
+  #leaderboardTopBar button {
+    width: auto;
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  #leaderboardOverlay .leaderboardList {
+    padding-bottom: 12px;
+  }
+</style>
+
+<script id="ga-final-hotfix-script">
+(function () {
+  function fastSubmitScore(finalScoreValue) {
+    const client = (typeof getClient === "function") ? getClient() : null;
+    if (!client) return Promise.resolve();
+    try {
+      const payload = {
+        name: (save.playerName || "Player").slice(0, 16),
+        score: finalScoreValue,
+        device_id: deviceId,
+        game_id: GAME_ID
+      };
+      Promise.resolve(client.from("score").insert(payload, { onConflict: "game_id,device_id" }))
+        .catch(console.error);
+    } catch (e) {
+      console.error(e);
+    }
+    return Promise.resolve();
+  }
+
+  submitScore = fastSubmitScore;
+
+  function resetInputState() {
+    try {
+      for (const k in keys) keys[k] = false;
+    } catch (e) {}
+    try {
+      lastTime = performance.now();
+    } catch (e) {}
+  }
+
+  function closeLeaderboardClean() {
+    leaderboardOverlay.classList.remove("show");
+
+    const cameFromGameOver =
+      !!window.__openedLeaderboardFromGameOver ||
+      state === "gameover" ||
+      gameOverOverlay.classList.contains("show");
+
+    resetInputState();
+
+    if (menuOverlay.classList.contains("show")) {
+      window.__openedLeaderboardFromGameOver = false;
+      return;
+    }
+
+    if (cameFromGameOver) {
+      resetRun();
+      gameOverOverlay.classList.remove("show");
+      hudTop.style.display = "flex";
+      dock.style.display = "none";
+      state = "play";
+      window.__openedLeaderboardFromGameOver = false;
+      return;
+    }
+
+    hudTop.style.display = "flex";
+    dock.style.display = "none";
+    if (state !== "menu") state = "play";
+    window.__openedLeaderboardFromGameOver = false;
+  }
+
+  const originalShowLeaderboardHotfix = showLeaderboard;
+  showLeaderboard = async function(fromMenu) {
+    window.__openedLeaderboardFromGameOver =
+      state === "gameover" || gameOverOverlay.classList.contains("show");
+    return await originalShowLeaderboardHotfix.apply(this, arguments);
+  };
+
+  function rebuildLeaderboardHeader() {
+    const card = document.querySelector("#leaderboardOverlay .card");
+    if (!card) return;
+
+    const oldH2 = card.querySelector("h2");
+    const renameBtn = document.getElementById("renameBtn");
+    const oldClose = document.getElementById("closeLeaderboardBtn");
+    if (!oldH2 || !renameBtn) return;
+
+    if (document.getElementById("leaderboardTopBar")) {
+      const freshClose = document.getElementById("closeLeaderboardBtn");
+      if (freshClose) {
+        const clone = freshClose.cloneNode(true);
+        freshClose.parentNode.replaceChild(clone, freshClose);
+        clone.addEventListener("click", closeLeaderboardClean);
+      }
+      return;
+    }
+
+    const topBar = document.createElement("div");
+    topBar.id = "leaderboardTopBar";
+
+    const leftWrap = document.createElement("div");
+    leftWrap.style.display = "flex";
+    leftWrap.style.alignItems = "center";
+    leftWrap.style.gap = "8px";
+    leftWrap.style.flex = "1";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.id = "closeLeaderboardBtn";
+    closeBtn.className = "secondary";
+    closeBtn.textContent = "Close";
+    closeBtn.type = "button";
+    closeBtn.addEventListener("click", closeLeaderboardClean);
+
+    const title = document.createElement("div");
+    title.className = "lbTitle";
+    title.textContent = "Leaderboard";
+
+    leftWrap.appendChild(closeBtn);
+    leftWrap.appendChild(title);
+
+    renameBtn.style.width = "auto";
+    renameBtn.style.margin = "0";
+    renameBtn.style.padding = "8px 12px";
+    renameBtn.style.fontSize = "12px";
+
+    topBar.appendChild(leftWrap);
+    topBar.appendChild(renameBtn);
+
+    if (oldClose) oldClose.remove();
+    oldH2.replaceWith(topBar);
+  }
+
+  function keepLeaderboardScrollable() {
+    const card = document.querySelector("#leaderboardOverlay .card");
+    if (!card) return;
+    card.style.overflowY = "auto";
+    card.style.overflowX = "hidden";
+    card.style.webkitOverflowScrolling = "touch";
+  }
+
+  function installCloseHandlers() {
+    const btn = document.getElementById("closeLeaderboardBtn");
+    if (!btn) return;
+    const clone = btn.cloneNode(true);
+    btn.parentNode.replaceChild(clone, btn);
+    clone.addEventListener("click", closeLeaderboardClean);
+  }
+
+  rebuildLeaderboardHeader();
+  keepLeaderboardScrollable();
+  installCloseHandlers();
+
+  document.addEventListener("DOMContentLoaded", function () {
+    rebuildLeaderboardHeader();
+    keepLeaderboardScrollable();
+    installCloseHandlers();
+  });
+
+  window.addEventListener("load", function () {
+    rebuildLeaderboardHeader();
+    keepLeaderboardScrollable();
+    installCloseHandlers();
+  });
+})();
+</script>
+
+
+<style id="ga-review-polish">
+  #dock { display: none !important; }
+  .rewardActionsOnly { display: none !important; }
+  #leaderboardOverlay .card {
+    position: relative;
+    max-height: min(84dvh, 760px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-top: 58px !important;
+  }
+  #leaderboardTopBar {
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: -40px 0 14px 0;
+    padding: 8px 0 10px 0;
+    background: rgba(11, 18, 34, 0.98);
+  }
+  #leaderboardTopBar .lbLeft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+  #leaderboardTopBar .lbTitle {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  #leaderboardTopBar button {
+    width: auto;
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  #leaderboardOverlay .leaderboardList {
+    padding-bottom: 8px;
+  }
+  #leaderboardOverlay .leaderNote {
+    padding-bottom: 8px;
+  }
+  @media (max-width: 720px) {
+    #leaderboardOverlay .card {
+      max-height: min(86dvh, 760px) !important;
+      padding-top: 54px !important;
+    }
+    #leaderboardTopBar .lbTitle { font-size: 21px; }
+  }
+</style>
+
+<script id="ga-review-polish-script">
+(function () {
+  function resetInputs() {
+    try {
+      if (typeof keys !== "undefined") {
+        for (const k in keys) keys[k] = false;
+      }
+    } catch (e) {}
+    try {
+      if (typeof virtualStick !== "undefined") {
+        virtualStick.active = false;
+        virtualStick.x = 0;
+        virtualStick.y = 0;
+      }
+    } catch (e) {}
+    try { lastTime = performance.now(); } catch (e) {}
+  }
+
+  function installLeaderboardHeader() {
+    const card = document.querySelector("#leaderboardOverlay .card");
+    if (!card) return;
+
+    const renameBtn = document.getElementById("renameBtn");
+    const oldH2 = card.querySelector("h2");
+    if (!renameBtn || !oldH2) return;
+    if (document.getElementById("leaderboardTopBar")) return;
+
+    const oldClose = document.getElementById("closeLeaderboardBtn");
+    if (oldClose) oldClose.remove();
+
+    const topBar = document.createElement("div");
+    topBar.id = "leaderboardTopBar";
+
+    const left = document.createElement("div");
+    left.className = "lbLeft";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.id = "closeLeaderboardBtn";
+    closeBtn.className = "secondary";
+    closeBtn.type = "button";
+    closeBtn.textContent = "Close";
+
+    const title = document.createElement("div");
+    title.className = "lbTitle";
+    title.textContent = "Leaderboard";
+
+    left.appendChild(closeBtn);
+    left.appendChild(title);
+
+    renameBtn.style.width = "auto";
+    renameBtn.style.margin = "0";
+    renameBtn.style.padding = "8px 12px";
+    renameBtn.style.fontSize = "12px";
+
+    topBar.appendChild(left);
+    topBar.appendChild(renameBtn);
+
+    oldH2.replaceWith(topBar);
+  }
+
+  function closeLeaderboardClean() {
+    leaderboardOverlay.classList.remove("show");
+
+    const cameFromGameOver = !!window.__gaOpenedFromGameOver ||
+      state === "gameover" ||
+      gameOverOverlay.classList.contains("show");
+
+    resetInputs();
+
+    if (menuOverlay.classList.contains("show")) {
+      window.__gaOpenedFromGameOver = false;
+      return;
+    }
+
+    if (cameFromGameOver) {
+      resetRun();
+      gameOverOverlay.classList.remove("show");
+      hudTop.style.display = "flex";
+      state = "play";
+      window.__gaOpenedFromGameOver = false;
+      return;
+    }
+
+    hudTop.style.display = "flex";
+    if (state !== "menu") state = "play";
+    window.__gaOpenedFromGameOver = false;
+  }
+
+  function closeShopClean() {
+    shopOverlay.classList.remove("show");
+
+    const cameFromGameOver = !!window.__gaOpenedFromGameOver ||
+      state === "gameover" ||
+      gameOverOverlay.classList.contains("show");
+
+    resetInputs();
+
+    if (menuOverlay.classList.contains("show")) {
+      window.__gaOpenedFromGameOver = false;
+      return;
+    }
+
+    if (cameFromGameOver) {
+      resetRun();
+      gameOverOverlay.classList.remove("show");
+      hudTop.style.display = "flex";
+      state = "play";
+      window.__gaOpenedFromGameOver = false;
+      return;
+    }
+
+    hudTop.style.display = "flex";
+    if (state !== "menu") state = "play";
+    window.__gaOpenedFromGameOver = false;
+  }
+
+  function bindButtons() {
+    const lbBtn = document.getElementById("closeLeaderboardBtn");
+    if (lbBtn) {
+      const clone = lbBtn.cloneNode(true);
+      lbBtn.parentNode.replaceChild(clone, lbBtn);
+      clone.addEventListener("click", closeLeaderboardClean);
+    }
+
+    const shopBtn = document.getElementById("closeShopBtn");
+    if (shopBtn) {
+      const clone = shopBtn.cloneNode(true);
+      shopBtn.parentNode.replaceChild(clone, shopBtn);
+      clone.addEventListener("click", closeShopClean);
+    }
+  }
+
+  const oldShowLeaderboard = window.showLeaderboard;
+  if (typeof oldShowLeaderboard === "function") {
+    window.showLeaderboard = async function(fromMenu) {
+      window.__gaOpenedFromGameOver =
+        state === "gameover" || gameOverOverlay.classList.contains("show");
+      const result = await oldShowLeaderboard.apply(this, arguments);
+      installLeaderboardHeader();
+      bindButtons();
+      return result;
+    };
+  }
+
+  const oldShowShop = window.showShop;
+  if (typeof oldShowShop === "function") {
+    window.showShop = function(fromMenu) {
+      window.__gaOpenedFromGameOver =
+        state === "gameover" || gameOverOverlay.classList.contains("show");
+      return oldShowShop.apply(this, arguments);
+    };
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    installLeaderboardHeader();
+    bindButtons();
+  });
+  window.addEventListener("load", function () {
+    installLeaderboardHeader();
+    bindButtons();
+  });
+})();
+</script>
+
+
+<style id="ga-premium-polish">
+  :root {
+    --ga-panel: rgba(7, 13, 28, 0.86);
+    --ga-panel-border: rgba(255,255,255,0.10);
+    --ga-text-soft: #b9cae2;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 50% 20%, rgba(60,80,140,0.20), transparent 32%),
+      linear-gradient(180deg, #030712, #050912 55%, #03050a);
+  }
+
+  #app {
+    box-shadow: 0 24px 70px rgba(0,0,0,0.45);
+  }
+
+  .card,
+  .hudBox,
+  .dockCard,
+  .shopItem,
+  .leaderRow {
+    background: var(--ga-panel) !important;
+    border-color: var(--ga-panel-border) !important;
+    backdrop-filter: blur(8px);
+  }
+
+  .card {
+    box-shadow: 0 18px 48px rgba(0,0,0,0.42);
+  }
+
+  .sub,
+  .priceText,
+  .leaderNote,
+  .sectionLabel,
+  .dockTitle {
+    color: var(--ga-text-soft) !important;
+  }
+
+  #hudTop {
+    gap: 10px;
+  }
+
+  .hudBox {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  input {
+    background: rgba(245, 249, 255, 0.96);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.10);
+  }
+
+  button {
+    box-shadow: 0 8px 22px rgba(24,192,255,0.16);
+    transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px rgba(24,192,255,0.22);
+  }
+
+  button.secondary {
+    box-shadow: none;
+  }
+
+  #menuOverlay .card,
+  #gameOverOverlay .card,
+  #pauseOverlay .card {
+    width: min(94vw, 460px);
+  }
+
+  .infoPanel {
+    background: rgba(255,255,255,0.035) !important;
+  }
+
+  .menuHint {
+    font-size: 11px !important;
+    opacity: 0.95;
+  }
+</style>
+
+<script id="ga-premium-polish-script">
+(function () {
+  const QUALITY = {
+    vignette: null,
+    arenaGlow: null,
+    initialized: false
+  };
+
+  function initCanvasQuality() {
+    if (!gameCtx || !starCtx) return;
+    gameCtx.imageSmoothingEnabled = true;
+    starCtx.imageSmoothingEnabled = true;
+    QUALITY.initialized = true;
+  }
+
+  function buildVignette() {
+    const v = gameCtx.createRadialGradient(GAME.w / 2, GAME.h / 2, GAME.h * 0.10, GAME.w / 2, GAME.h / 2, GAME.h * 0.72);
+    v.addColorStop(0, "rgba(0,0,0,0)");
+    v.addColorStop(1, "rgba(0,0,0,0.34)");
+    QUALITY.vignette = v;
+
+    const a = gameCtx.createRadialGradient(GAME.w / 2, GAME.h * 0.82, GAME.h * 0.05, GAME.w / 2, GAME.h * 0.82, GAME.h * 0.60);
+    a.addColorStop(0, "rgba(80,130,255,0.12)");
+    a.addColorStop(1, "rgba(0,0,0,0)");
+    QUALITY.arenaGlow = a;
+  }
+
+  const oldDrawBackgroundScene = drawBackgroundScene;
+  drawBackgroundScene = function(ctx) {
+    oldDrawBackgroundScene(ctx);
+
+    // soft nebula layer for more depth
+    const g1 = ctx.createRadialGradient(GAME.w * 0.22, GAME.h * 0.28, 0, GAME.w * 0.22, GAME.h * 0.28, 250);
+    g1.addColorStop(0, "rgba(52, 126, 255, 0.10)");
+    g1.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g1;
+    ctx.fillRect(0, 0, GAME.w, GAME.h);
+
+    const g2 = ctx.createRadialGradient(GAME.w * 0.78, GAME.h * 0.68, 0, GAME.w * 0.78, GAME.h * 0.68, 260);
+    g2.addColorStop(0, "rgba(255, 72, 152, 0.09)");
+    g2.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 0, GAME.w, GAME.h);
+
+    // subtle arena floor glow
+    const floor = ctx.createLinearGradient(0, GAME.h * 0.72, 0, GAME.h);
+    floor.addColorStop(0, "rgba(40, 60, 110, 0.02)");
+    floor.addColorStop(1, "rgba(5, 10, 20, 0.22)");
+    ctx.fillStyle = floor;
+    ctx.fillRect(0, GAME.h * 0.66, GAME.w, GAME.h * 0.34);
+  };
+
+  const oldDrawBlocks = drawBlocks;
+  drawBlocks = function() {
+    for (const b of blocks) {
+      gameCtx.save();
+      gameCtx.shadowColor = "rgba(80,120,255,0.20)";
+      gameCtx.shadowBlur = 18;
+      const grad = gameCtx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
+      grad.addColorStop(0, "rgba(90, 116, 200, 0.98)");
+      grad.addColorStop(1, "rgba(56, 77, 140, 0.98)");
+      gameCtx.fillStyle = grad;
+      roundRect(gameCtx, b.x, b.y, b.w, b.h, 12, true, false);
+
+      gameCtx.shadowBlur = 0;
+      gameCtx.strokeStyle = "rgba(255,255,255,0.09)";
+      gameCtx.lineWidth = 1.2;
+      roundRect(gameCtx, b.x, b.y, b.w, b.h, 12, false, true);
+
+      gameCtx.beginPath();
+      gameCtx.strokeStyle = "rgba(255,255,255,0.06)";
+      gameCtx.moveTo(b.x + 10, b.y + 8);
+      gameCtx.lineTo(b.x + b.w - 10, b.y + 8);
+      gameCtx.stroke();
+      gameCtx.restore();
+    }
+  };
+
+  const oldDrawCoins = drawCoins;
+  drawCoins = function() {
+    gameCtx.textAlign = "center";
+    gameCtx.textBaseline = "middle";
+    gameCtx.font = "bold 14px Arial";
+    for (const c of coins) {
+      const pulse = 1 + Math.sin(c.pulse) * 0.08;
+      gameCtx.save();
+      gameCtx.translate(c.x, c.y);
+      gameCtx.scale(pulse, pulse);
+
+      gameCtx.beginPath();
+      gameCtx.fillStyle = "rgba(255, 214, 90, 0.18)";
+      gameCtx.arc(0, 0, c.r + 6, 0, Math.PI * 2);
+      gameCtx.fill();
+
+      const coinGrad = gameCtx.createRadialGradient(-2, -3, 2, 0, 0, c.r);
+      coinGrad.addColorStop(0, "#fff2a9");
+      coinGrad.addColorStop(0.45, "#ffd85a");
+      coinGrad.addColorStop(1, "#d49410");
+      gameCtx.beginPath();
+      gameCtx.fillStyle = coinGrad;
+      gameCtx.arc(0, 0, c.r, 0, Math.PI * 2);
+      gameCtx.fill();
+
+      gameCtx.lineWidth = 2;
+      gameCtx.strokeStyle = "rgba(255,255,255,0.28)";
+      gameCtx.stroke();
+
+      gameCtx.fillStyle = "#6d4c00";
+      gameCtx.fillText("C", 0, 0.5);
+      gameCtx.restore();
+    }
+  };
+
+  const oldDrawEnemies = drawEnemies;
+  drawEnemies = function() {
+    for (const e of enemies) {
+      gameCtx.save();
+      gameCtx.shadowColor = "rgba(255, 88, 130, 0.35)";
+      gameCtx.shadowBlur = 16;
+
+      const grad = gameCtx.createRadialGradient(e.x - e.r * 0.3, e.y - e.r * 0.4, 2, e.x, e.y, e.r * 1.2);
+      grad.addColorStop(0, "#ff8aa5");
+      grad.addColorStop(0.45, "#ff5c7d");
+      grad.addColorStop(1, "#d82652");
+
+      gameCtx.beginPath();
+      gameCtx.fillStyle = grad;
+      gameCtx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+      gameCtx.fill();
+
+      gameCtx.shadowBlur = 0;
+      gameCtx.beginPath();
+      gameCtx.strokeStyle = "rgba(255,255,255,0.12)";
+      gameCtx.lineWidth = 1.2;
+      gameCtx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+      gameCtx.stroke();
+
+      // eye glare
+      gameCtx.beginPath();
+      gameCtx.fillStyle = "rgba(255,255,255,0.18)";
+      gameCtx.arc(e.x - e.r * 0.35, e.y - e.r * 0.35, Math.max(2.5, e.r * 0.18), 0, Math.PI * 2);
+      gameCtx.fill();
+      gameCtx.restore();
+    }
+  };
+
+  const oldDrawPlayer = drawPlayer;
+  drawPlayer = function() {
+    const skin = currentSkin();
+    const visible = !(player.invuln > 0 && Math.floor(player.invuln * 14) % 2 === 0);
+    if (!visible) return;
+
+    let fill = skin.color;
+    if (skin.id === "rainbow") {
+      fill = `hsl(${(performance.now() / 12) % 360}deg 95% 60%)`;
+    }
+
+    gameCtx.save();
+    gameCtx.shadowColor = skin.id === "gold" ? "rgba(255, 215, 0, 0.38)" : "rgba(90, 210, 255, 0.28)";
+    gameCtx.shadowBlur = 20;
+
+    if (skin.id === "gold") {
+      gameCtx.beginPath();
+      gameCtx.fillStyle = "rgba(255, 215, 0, 0.22)";
+      gameCtx.arc(player.x, player.y, player.r + 11, 0, Math.PI * 2);
+      gameCtx.fill();
+    } else {
+      gameCtx.beginPath();
+      gameCtx.fillStyle = "rgba(68, 215, 255, 0.13)";
+      gameCtx.arc(player.x, player.y, player.r + 8, 0, Math.PI * 2);
+      gameCtx.fill();
+    }
+
+    const grad = gameCtx.createRadialGradient(
+      player.x - player.r * 0.35,
+      player.y - player.r * 0.45,
+      2,
+      player.x,
+      player.y,
+      player.r * 1.15
+    );
+    grad.addColorStop(0, "rgba(255,255,255,0.32)");
+    grad.addColorStop(0.25, fill);
+    grad.addColorStop(1, skin.id === "gold" ? "#c89b00" : "rgba(20, 120, 255, 0.96)");
+
+    gameCtx.beginPath();
+    gameCtx.fillStyle = grad;
+    gameCtx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+    gameCtx.fill();
+
+    gameCtx.shadowBlur = 0;
+    gameCtx.beginPath();
+    gameCtx.strokeStyle = "rgba(255,255,255,0.14)";
+    gameCtx.lineWidth = 1.2;
+    gameCtx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+    gameCtx.stroke();
+
+    gameCtx.beginPath();
+    gameCtx.fillStyle = "rgba(255,255,255,0.18)";
+    gameCtx.arc(player.x - 4, player.y - 5, Math.max(2.5, player.r * 0.22), 0, Math.PI * 2);
+    gameCtx.fill();
+
+    if (abilityState && abilityState.shieldActive > 0) {
+      gameCtx.beginPath();
+      gameCtx.strokeStyle = "rgba(110, 230, 255, 0.72)";
+      gameCtx.lineWidth = 3;
+      gameCtx.arc(player.x, player.y, player.r + 13, 0, Math.PI * 2);
+      gameCtx.stroke();
+    }
+
+    gameCtx.restore();
+  };
+
+  const oldDrawParticles = drawParticles;
+  drawParticles = function() {
+    for (const p of particles) {
+      gameCtx.save();
+      gameCtx.globalAlpha = Math.max(0, p.life / 0.4);
+      gameCtx.shadowColor = p.color;
+      gameCtx.shadowBlur = 10;
+      gameCtx.fillStyle = p.color;
+      gameCtx.beginPath();
+      gameCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      gameCtx.fill();
+      gameCtx.restore();
+    }
+    gameCtx.globalAlpha = 1;
+  };
+
+  const oldDrawGame = drawGame;
+  drawGame = function() {
+    oldDrawGame();
+
+    if (!QUALITY.vignette) buildVignette();
+
+    gameCtx.save();
+    gameCtx.fillStyle = QUALITY.arenaGlow;
+    gameCtx.fillRect(0, 0, GAME.w, GAME.h);
+    gameCtx.fillStyle = QUALITY.vignette;
+    gameCtx.fillRect(0, 0, GAME.w, GAME.h);
+    gameCtx.restore();
+  };
+
+  const oldUpdate = update;
+  update = function(dt) {
+    initCanvasQuality();
+    oldUpdate(dt);
+
+    // smoother top-level timing feel after overlay closes
+    if (dt > 0.03) {
+      lastTime = performance.now();
+    }
+  };
+
+  // Replace a few visible labels for a more premium tone
+  function premiumText() {
+    const best = document.getElementById("hudBest");
+    const score = document.getElementById("hudScore");
+    const coins = document.getElementById("hudCoins");
+    if (best && best.textContent.startsWith("Best:")) best.textContent = best.textContent.replace("Best:", "Record:");
+    if (score && score.textContent.startsWith("Score:")) score.textContent = score.textContent.replace("Score:", "Score:");
+    if (coins && coins.textContent.startsWith("Coins:")) coins.textContent = coins.textContent.replace("Coins:", "Credits:");
+  }
+
+  document.addEventListener("DOMContentLoaded", premiumText);
+  window.addEventListener("load", premiumText);
 })();
 </script>
 
