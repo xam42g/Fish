@@ -306,17 +306,54 @@
     <canvas id="game" width="1280" height="720"></canvas>
 
     <div id="menuOverlay" class="overlay show">
-      <div class="card">
-        <h1>Galaxy Arena</h1>
-        <p class="sub">Survive the arena, collect coins, and outlast every wave.</p>
-        <input id="nameInput" type="text" maxlength="16" placeholder="Enter your pilot name" />
-        <button id="startBtn">Start Game</button>
-        <button id="openShopFromMenu" class="secondary">Store</button>
-        <button id="openLeaderboardFromMenu" class="secondary">High Scores</button>
-        <div class="infoPanel">
-          <div class="infoPanelTitle">Mission Briefing</div>
-          <div class="infoPanelText">Avoid enemies, collect coins, and use your abilities at the right moment. The longer you survive, the more pressure the arena creates.</div>
+      <div class="card" style="width:min(94vw,560px); position:relative; overflow:hidden; background:
+        linear-gradient(180deg, rgba(10,18,36,0.97), rgba(7,12,25,0.97)),
+        radial-gradient(circle at 20% 0%, rgba(78,160,255,0.14), transparent 28%),
+        radial-gradient(circle at 85% 12%, rgba(168,85,247,0.16), transparent 24%);">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <div style="padding:7px 10px; border-radius:999px; background:rgba(76,231,255,0.12); color:#baf4ff; font-size:12px; font-weight:700; letter-spacing:.4px; border:1px solid rgba(76,231,255,0.18);">Arcade Survival</div>
+          <div style="padding:7px 10px; border-radius:999px; background:rgba(255,255,255,0.05); color:#d8e7ff; font-size:12px; font-weight:700; letter-spacing:.4px; border:1px solid rgba(255,255,255,0.10);">Mobile + Keyboard</div>
         </div>
+
+        <h1 style="font-size:46px; line-height:1; margin-bottom:12px; letter-spacing:-1px;">Galaxy Arena</h1>
+        <p class="sub" style="font-size:15px; line-height:1.55; max-width:460px; margin-bottom:18px;">
+          Survive the arena, collect credits, and outlast every wave. Use your abilities at the right moment and push for a new record.
+        </p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;">
+          <div class="infoPanel" style="margin-top:0;">
+            <div class="infoPanelTitle">Fast Runs</div>
+            <div class="infoPanelText">Instant restarts, short sessions, clear progression.</div>
+          </div>
+          <div class="infoPanel" style="margin-top:0;">
+            <div class="infoPanelTitle">Abilities</div>
+            <div class="infoPanelText">Dash, Shield Matrix, Blink Drive, and Overdrive.</div>
+          </div>
+          <div class="infoPanel" style="margin-top:0;">
+            <div class="infoPanelTitle">Store</div>
+            <div class="infoPanelText">Unlock cosmetics and useful run upgrades.</div>
+          </div>
+          <div class="infoPanel" style="margin-top:0;">
+            <div class="infoPanelTitle">High Scores</div>
+            <div class="infoPanelText">Compete for the top place on the leaderboard.</div>
+          </div>
+        </div>
+
+        <div class="menuInputWrap">
+          <label class="menuInputLabel" for="nameInput">Pilot Name</label>
+          <input id="nameInput" type="text" maxlength="16" placeholder="Enter your pilot name" />
+        </div>
+
+        <button id="startBtn">Launch Arena</button>
+        <button id="openShopFromMenu" class="secondary">Open Store</button>
+        <button id="openLeaderboardFromMenu" class="secondary">View High Scores</button>
+
+        <div class="infoPanel">
+          <div class="infoPanelTitle">Controls</div>
+          <div class="infoPanelText">Keyboard: WASD / Arrow Keys · Space Dash · Q Shield · E Teleport · Shift Overdrive. On touch devices, use the joystick and on-screen ability buttons.</div>
+        </div>
+      </div>
+    </div>
         <div class="menuHint">Keyboard: WASD / Arrow Keys · Space Dash · Q Shield · E Teleport · Shift Overdrive</div>
 
       </div>
@@ -858,7 +895,7 @@ nameInput.addEventListener("input", () => {
       leaderboardOverlay.classList.remove("show");
       gameOverOverlay.classList.remove("show");
       hudTop.style.display = "none";
-      dock.style.display = "none";
+      dock.style.display = "flex";
       state = "menu";
     }
 
@@ -903,7 +940,7 @@ nameInput.addEventListener("input", () => {
         resetRun();
         gameOverOverlay.classList.remove("show");
         hudTop.style.display = "flex";
-        dock.style.display = "none";
+        dock.style.display = "flex";
         state = "play";
       }
     }
@@ -921,7 +958,7 @@ nameInput.addEventListener("input", () => {
       leaderboardOverlay.classList.remove("show");
       gameOverOverlay.classList.remove("show");
       hudTop.style.display = "flex";
-      dock.style.display = "none";
+      dock.style.display = "flex";
       state = "play";
 
       if (!startedLoop) {
@@ -3480,7 +3517,7 @@ if (renameBtn) {
       resetRun();
       gameOverOverlay.classList.remove("show");
       hudTop.style.display = "flex";
-      dock.style.display = "none";
+      dock.style.display = "flex";
       state = "play";
       window.__openedLeaderboardFromGameOver = false;
       return;
@@ -3589,7 +3626,7 @@ if (renameBtn) {
 
 
 <style id="ga-review-polish">
-  #dock { display: none !important; }
+  
   .rewardActionsOnly { display: none !important; }
   #leaderboardOverlay .card {
     position: relative;
@@ -3722,6 +3759,7 @@ if (renameBtn) {
       resetRun();
       gameOverOverlay.classList.remove("show");
       hudTop.style.display = "flex";
+      dock.style.display = "flex";
       state = "play";
       window.__gaOpenedFromGameOver = false;
       return;
@@ -3750,6 +3788,7 @@ if (renameBtn) {
       resetRun();
       gameOverOverlay.classList.remove("show");
       hudTop.style.display = "flex";
+      dock.style.display = "flex";
       state = "play";
       window.__gaOpenedFromGameOver = false;
       return;
@@ -3809,354 +3848,78 @@ if (renameBtn) {
 </script>
 
 
-<style id="ga-premium-polish">
-  :root {
-    --ga-panel: rgba(7, 13, 28, 0.86);
-    --ga-panel-border: rgba(255,255,255,0.10);
-    --ga-text-soft: #b9cae2;
+<style id="ga-stability-touch-fix">
+  .overlay {
+    overscroll-behavior: contain;
   }
-
-  body {
-    background:
-      radial-gradient(circle at 50% 20%, rgba(60,80,140,0.20), transparent 32%),
-      linear-gradient(180deg, #030712, #050912 55%, #03050a);
-  }
-
-  #app {
-    box-shadow: 0 24px 70px rgba(0,0,0,0.45);
-  }
-
-  .card,
-  .hudBox,
-  .dockCard,
-  .shopItem,
-  .leaderRow {
-    background: var(--ga-panel) !important;
-    border-color: var(--ga-panel-border) !important;
-    backdrop-filter: blur(8px);
-  }
-
   .card {
-    box-shadow: 0 18px 48px rgba(0,0,0,0.42);
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
-
-  .sub,
-  .priceText,
-  .leaderNote,
-  .sectionLabel,
-  .dockTitle {
-    color: var(--ga-text-soft) !important;
-  }
-
-  #hudTop {
-    gap: 10px;
-  }
-
-  .hudBox {
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-  }
-
-  input {
-    background: rgba(245, 249, 255, 0.96);
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.10);
-  }
-
-  button {
-    box-shadow: 0 8px 22px rgba(24,192,255,0.16);
-    transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
-  }
-
-  button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 26px rgba(24,192,255,0.22);
-  }
-
-  button.secondary {
-    box-shadow: none;
-  }
-
-  #menuOverlay .card,
-  #gameOverOverlay .card,
-  #pauseOverlay .card {
-    width: min(94vw, 460px);
-  }
-
-  .infoPanel {
-    background: rgba(255,255,255,0.035) !important;
-  }
-
-  .menuHint {
-    font-size: 11px !important;
-    opacity: 0.95;
+  #shopOverlay .card,
+  #leaderboardOverlay .card {
+    max-height: min(84dvh, 760px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-bottom: 18px !important;
   }
 </style>
 
-<script id="ga-premium-polish-script">
+<script id="ga-stability-fix">
 (function () {
-  const QUALITY = {
-    vignette: null,
-    arenaGlow: null,
-    initialized: false
-  };
-
-  function initCanvasQuality() {
-    if (!gameCtx || !starCtx) return;
-    gameCtx.imageSmoothingEnabled = true;
-    starCtx.imageSmoothingEnabled = true;
-    QUALITY.initialized = true;
+  function resetInputs() {
+    try {
+      if (typeof keys !== "undefined") {
+        for (const k in keys) keys[k] = false;
+      }
+    } catch (e) {}
+    try {
+      if (typeof virtualStick !== "undefined") {
+        virtualStick.active = false;
+        virtualStick.x = 0;
+        virtualStick.y = 0;
+      }
+    } catch (e) {}
+    try { lastTime = performance.now(); } catch (e) {}
   }
 
-  function buildVignette() {
-    const v = gameCtx.createRadialGradient(GAME.w / 2, GAME.h / 2, GAME.h * 0.10, GAME.w / 2, GAME.h / 2, GAME.h * 0.72);
-    v.addColorStop(0, "rgba(0,0,0,0)");
-    v.addColorStop(1, "rgba(0,0,0,0.34)");
-    QUALITY.vignette = v;
-
-    const a = gameCtx.createRadialGradient(GAME.w / 2, GAME.h * 0.82, GAME.h * 0.05, GAME.w / 2, GAME.h * 0.82, GAME.h * 0.60);
-    a.addColorStop(0, "rgba(80,130,255,0.12)");
-    a.addColorStop(1, "rgba(0,0,0,0)");
-    QUALITY.arenaGlow = a;
+  // restore play properly after overlays
+  const oldHideShop = window.hideShop;
+  if (typeof oldHideShop === "function") {
+    window.hideShop = function() {
+      oldHideShop.apply(this, arguments);
+      resetInputs();
+      if (!menuOverlay.classList.contains("show") && !gameOverOverlay.classList.contains("show")) {
+        hudTop.style.display = "flex";
+        dock.style.display = "flex";
+        if (typeof state !== "undefined") state = "play";
+      }
+    };
   }
 
-  const oldDrawBackgroundScene = drawBackgroundScene;
-  drawBackgroundScene = function(ctx) {
-    oldDrawBackgroundScene(ctx);
-
-    // soft nebula layer for more depth
-    const g1 = ctx.createRadialGradient(GAME.w * 0.22, GAME.h * 0.28, 0, GAME.w * 0.22, GAME.h * 0.28, 250);
-    g1.addColorStop(0, "rgba(52, 126, 255, 0.10)");
-    g1.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = g1;
-    ctx.fillRect(0, 0, GAME.w, GAME.h);
-
-    const g2 = ctx.createRadialGradient(GAME.w * 0.78, GAME.h * 0.68, 0, GAME.w * 0.78, GAME.h * 0.68, 260);
-    g2.addColorStop(0, "rgba(255, 72, 152, 0.09)");
-    g2.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = g2;
-    ctx.fillRect(0, 0, GAME.w, GAME.h);
-
-    // subtle arena floor glow
-    const floor = ctx.createLinearGradient(0, GAME.h * 0.72, 0, GAME.h);
-    floor.addColorStop(0, "rgba(40, 60, 110, 0.02)");
-    floor.addColorStop(1, "rgba(5, 10, 20, 0.22)");
-    ctx.fillStyle = floor;
-    ctx.fillRect(0, GAME.h * 0.66, GAME.w, GAME.h * 0.34);
-  };
-
-  const oldDrawBlocks = drawBlocks;
-  drawBlocks = function() {
-    for (const b of blocks) {
-      gameCtx.save();
-      gameCtx.shadowColor = "rgba(80,120,255,0.20)";
-      gameCtx.shadowBlur = 18;
-      const grad = gameCtx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
-      grad.addColorStop(0, "rgba(90, 116, 200, 0.98)");
-      grad.addColorStop(1, "rgba(56, 77, 140, 0.98)");
-      gameCtx.fillStyle = grad;
-      roundRect(gameCtx, b.x, b.y, b.w, b.h, 12, true, false);
-
-      gameCtx.shadowBlur = 0;
-      gameCtx.strokeStyle = "rgba(255,255,255,0.09)";
-      gameCtx.lineWidth = 1.2;
-      roundRect(gameCtx, b.x, b.y, b.w, b.h, 12, false, true);
-
-      gameCtx.beginPath();
-      gameCtx.strokeStyle = "rgba(255,255,255,0.06)";
-      gameCtx.moveTo(b.x + 10, b.y + 8);
-      gameCtx.lineTo(b.x + b.w - 10, b.y + 8);
-      gameCtx.stroke();
-      gameCtx.restore();
-    }
-  };
-
-  const oldDrawCoins = drawCoins;
-  drawCoins = function() {
-    gameCtx.textAlign = "center";
-    gameCtx.textBaseline = "middle";
-    gameCtx.font = "bold 14px Arial";
-    for (const c of coins) {
-      const pulse = 1 + Math.sin(c.pulse) * 0.08;
-      gameCtx.save();
-      gameCtx.translate(c.x, c.y);
-      gameCtx.scale(pulse, pulse);
-
-      gameCtx.beginPath();
-      gameCtx.fillStyle = "rgba(255, 214, 90, 0.18)";
-      gameCtx.arc(0, 0, c.r + 6, 0, Math.PI * 2);
-      gameCtx.fill();
-
-      const coinGrad = gameCtx.createRadialGradient(-2, -3, 2, 0, 0, c.r);
-      coinGrad.addColorStop(0, "#fff2a9");
-      coinGrad.addColorStop(0.45, "#ffd85a");
-      coinGrad.addColorStop(1, "#d49410");
-      gameCtx.beginPath();
-      gameCtx.fillStyle = coinGrad;
-      gameCtx.arc(0, 0, c.r, 0, Math.PI * 2);
-      gameCtx.fill();
-
-      gameCtx.lineWidth = 2;
-      gameCtx.strokeStyle = "rgba(255,255,255,0.28)";
-      gameCtx.stroke();
-
-      gameCtx.fillStyle = "#6d4c00";
-      gameCtx.fillText("C", 0, 0.5);
-      gameCtx.restore();
-    }
-  };
-
-  const oldDrawEnemies = drawEnemies;
-  drawEnemies = function() {
-    for (const e of enemies) {
-      gameCtx.save();
-      gameCtx.shadowColor = "rgba(255, 88, 130, 0.35)";
-      gameCtx.shadowBlur = 16;
-
-      const grad = gameCtx.createRadialGradient(e.x - e.r * 0.3, e.y - e.r * 0.4, 2, e.x, e.y, e.r * 1.2);
-      grad.addColorStop(0, "#ff8aa5");
-      grad.addColorStop(0.45, "#ff5c7d");
-      grad.addColorStop(1, "#d82652");
-
-      gameCtx.beginPath();
-      gameCtx.fillStyle = grad;
-      gameCtx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
-      gameCtx.fill();
-
-      gameCtx.shadowBlur = 0;
-      gameCtx.beginPath();
-      gameCtx.strokeStyle = "rgba(255,255,255,0.12)";
-      gameCtx.lineWidth = 1.2;
-      gameCtx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
-      gameCtx.stroke();
-
-      // eye glare
-      gameCtx.beginPath();
-      gameCtx.fillStyle = "rgba(255,255,255,0.18)";
-      gameCtx.arc(e.x - e.r * 0.35, e.y - e.r * 0.35, Math.max(2.5, e.r * 0.18), 0, Math.PI * 2);
-      gameCtx.fill();
-      gameCtx.restore();
-    }
-  };
-
-  const oldDrawPlayer = drawPlayer;
-  drawPlayer = function() {
-    const skin = currentSkin();
-    const visible = !(player.invuln > 0 && Math.floor(player.invuln * 14) % 2 === 0);
-    if (!visible) return;
-
-    let fill = skin.color;
-    if (skin.id === "rainbow") {
-      fill = `hsl(${(performance.now() / 12) % 360}deg 95% 60%)`;
-    }
-
-    gameCtx.save();
-    gameCtx.shadowColor = skin.id === "gold" ? "rgba(255, 215, 0, 0.38)" : "rgba(90, 210, 255, 0.28)";
-    gameCtx.shadowBlur = 20;
-
-    if (skin.id === "gold") {
-      gameCtx.beginPath();
-      gameCtx.fillStyle = "rgba(255, 215, 0, 0.22)";
-      gameCtx.arc(player.x, player.y, player.r + 11, 0, Math.PI * 2);
-      gameCtx.fill();
-    } else {
-      gameCtx.beginPath();
-      gameCtx.fillStyle = "rgba(68, 215, 255, 0.13)";
-      gameCtx.arc(player.x, player.y, player.r + 8, 0, Math.PI * 2);
-      gameCtx.fill();
-    }
-
-    const grad = gameCtx.createRadialGradient(
-      player.x - player.r * 0.35,
-      player.y - player.r * 0.45,
-      2,
-      player.x,
-      player.y,
-      player.r * 1.15
-    );
-    grad.addColorStop(0, "rgba(255,255,255,0.32)");
-    grad.addColorStop(0.25, fill);
-    grad.addColorStop(1, skin.id === "gold" ? "#c89b00" : "rgba(20, 120, 255, 0.96)");
-
-    gameCtx.beginPath();
-    gameCtx.fillStyle = grad;
-    gameCtx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
-    gameCtx.fill();
-
-    gameCtx.shadowBlur = 0;
-    gameCtx.beginPath();
-    gameCtx.strokeStyle = "rgba(255,255,255,0.14)";
-    gameCtx.lineWidth = 1.2;
-    gameCtx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
-    gameCtx.stroke();
-
-    gameCtx.beginPath();
-    gameCtx.fillStyle = "rgba(255,255,255,0.18)";
-    gameCtx.arc(player.x - 4, player.y - 5, Math.max(2.5, player.r * 0.22), 0, Math.PI * 2);
-    gameCtx.fill();
-
-    if (abilityState && abilityState.shieldActive > 0) {
-      gameCtx.beginPath();
-      gameCtx.strokeStyle = "rgba(110, 230, 255, 0.72)";
-      gameCtx.lineWidth = 3;
-      gameCtx.arc(player.x, player.y, player.r + 13, 0, Math.PI * 2);
-      gameCtx.stroke();
-    }
-
-    gameCtx.restore();
-  };
-
-  const oldDrawParticles = drawParticles;
-  drawParticles = function() {
-    for (const p of particles) {
-      gameCtx.save();
-      gameCtx.globalAlpha = Math.max(0, p.life / 0.4);
-      gameCtx.shadowColor = p.color;
-      gameCtx.shadowBlur = 10;
-      gameCtx.fillStyle = p.color;
-      gameCtx.beginPath();
-      gameCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      gameCtx.fill();
-      gameCtx.restore();
-    }
-    gameCtx.globalAlpha = 1;
-  };
-
-  const oldDrawGame = drawGame;
-  drawGame = function() {
-    oldDrawGame();
-
-    if (!QUALITY.vignette) buildVignette();
-
-    gameCtx.save();
-    gameCtx.fillStyle = QUALITY.arenaGlow;
-    gameCtx.fillRect(0, 0, GAME.w, GAME.h);
-    gameCtx.fillStyle = QUALITY.vignette;
-    gameCtx.fillRect(0, 0, GAME.w, GAME.h);
-    gameCtx.restore();
-  };
-
-  const oldUpdate = update;
-  update = function(dt) {
-    initCanvasQuality();
-    oldUpdate(dt);
-
-    // smoother top-level timing feel after overlay closes
-    if (dt > 0.03) {
-      lastTime = performance.now();
-    }
-  };
-
-  // Replace a few visible labels for a more premium tone
-  function premiumText() {
-    const best = document.getElementById("hudBest");
-    const score = document.getElementById("hudScore");
-    const coins = document.getElementById("hudCoins");
-    if (best && best.textContent.startsWith("Best:")) best.textContent = best.textContent.replace("Best:", "Record:");
-    if (score && score.textContent.startsWith("Score:")) score.textContent = score.textContent.replace("Score:", "Score:");
-    if (coins && coins.textContent.startsWith("Coins:")) coins.textContent = coins.textContent.replace("Coins:", "Credits:");
+  const oldHideLeaderboard = window.hideLeaderboard;
+  if (typeof oldHideLeaderboard === "function") {
+    window.hideLeaderboard = function() {
+      oldHideLeaderboard.apply(this, arguments);
+      resetInputs();
+      if (!menuOverlay.classList.contains("show") && !gameOverOverlay.classList.contains("show")) {
+        hudTop.style.display = "flex";
+        dock.style.display = "flex";
+        if (typeof state !== "undefined") state = "play";
+      }
+    };
   }
 
-  document.addEventListener("DOMContentLoaded", premiumText);
-  window.addEventListener("load", premiumText);
+  // if start button was broken in earlier versions, bind it again safely
+  window.addEventListener("load", function () {
+    const startBtn = document.getElementById("startBtn");
+    if (startBtn && typeof startGame === "function") {
+      const clone = startBtn.cloneNode(true);
+      startBtn.parentNode.replaceChild(clone, startBtn);
+      clone.addEventListener("click", startGame);
+    }
+  });
 })();
 </script>
 
