@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Bubble Shooter</title>
+<style>
+body{margin:0;background:#cfcbe8;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh}
+canvas{background:#dcd8f5;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+</style>
+</head>
+<body>
+<canvas id="c" width="400" height="700"></canvas>
+<script>
+const c=document.getElementById("c");
+const x=c.getContext("2d");
+
+const colors=["#ff3b3b","#3bff57","#3b6bff","#ffd93b","#ff3bd9"];
+
+let balls=[];
+let rows=10, cols=10, r=18;
+
+for(let y=0;y<rows;y++){
+ for(let x0=0;x0<cols;x0++){
+  balls.push({x:40+x0*36,y:40+y*36,color:colors[Math.floor(Math.random()*colors.length)]});
+ }
+}
+
+let shooter={x:200,y:650,color:colors[0],angle:-Math.PI/2};
+let moving=null;
+
+c.onclick=e=>{
+ if(moving)return;
+ const rect=c.getBoundingClientRect();
+ const mx=e.clientX-rect.left;
+ const my=e.clientY-rect.top;
+ shooter.angle=Math.atan2(my-shooter.y,mx-shooter.x);
+ moving={x:shooter.x,y:shooter.y,dx:Math.cos(shooter.angle)*6,dy:Math.sin(shooter.angle)*6,color:shooter.color};
+ shooter.color=colors[Math.floor(Math.random()*colors.length)];
+};
+
+function update(){
+ if(moving){
+  moving.x+=moving.dx;
+  moving.y+=moving.dy;
+
+  if(moving.x<r||moving.x>c.width-r)moving.dx*=-1;
+
+  if(moving.y<50){
+   balls.push({x:moving.x,y:moving.y,color:moving.color});
+   moving=null;
+  }
+
+  for(let b of balls){
+   let d=Math.hypot(b.x-moving.x,b.y-moving.y);
+   if(d<r*2){
+    balls.push({x:moving.x,y:moving.y,color:moving.color});
+    moving=null;
+    break;
+   }
+  }
+ }
+}
+
+function drawBall(b){
+ let g=x.createRadialGradient(b.x-5,b.y-5,2,b.x,b.y,r);
+ g.addColorStop(0,"#fff");
+ g.addColorStop(1,b.color);
+ x.fillStyle=g;
+ x.beginPath();
+ x.arc(b.x,b.y,r,0,Math.PI*2);
+ x.fill();
+}
+
+function draw(){
+ x.clearRect(0,0,c.width,c.height);
+
+ for(let b of balls)drawBall(b);
+
+ if(moving)drawBall(moving);
+
+ drawBall(shooter);
+
+ x.strokeStyle="rgba(0,0,0,0.2)";
+ x.beginPath();
+ x.moveTo(shooter.x,shooter.y);
+ x.lineTo(shooter.x+Math.cos(shooter.angle)*100,shooter.y+Math.sin(shooter.angle)*100);
+ x.stroke();
+}
+
+function loop(){
+ update();
+ draw();
+ requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
