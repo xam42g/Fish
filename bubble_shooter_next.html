@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Bubble Shooter Next</title>
+<style>
+body{margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#1a1c3a}
+canvas{background:#dcd8f5;border-radius:20px}
+</style>
+</head>
+<body>
+<canvas id="c" width="420" height="760"></canvas>
+<script>
+const c=document.getElementById("c");
+const x=c.getContext("2d");
+
+const R=18;
+let balls=[];
+let colors=["red","green","blue","yellow"];
+
+for(let y=0;y<8;y++){
+ for(let x0=0;x0<10;x0++){
+  balls.push({x:40+x0*36,y:60+y*34,color:colors[Math.floor(Math.random()*colors.length)]});
+ }
+}
+
+let shooter={x:210,y:700,color:colors[0],angle:-Math.PI/2};
+let moving=null;
+
+// AIM LINE WITH REFLECTION
+function drawAim(){
+ let angle=shooter.angle;
+ let px=shooter.x, py=shooter.y;
+ let dx=Math.cos(angle), dy=Math.sin(angle);
+
+ x.strokeStyle="rgba(0,0,0,0.2)";
+ x.setLineDash([6,6]);
+
+ for(let i=0;i<3;i++){
+  let t=1000;
+  if(dx>0)t=(c.width-R-px)/dx;
+  if(dx<0)t=(R-px)/dx;
+
+  let endX=px+dx*t;
+  let endY=py+dy*t;
+
+  x.beginPath();
+  x.moveTo(px,py);
+  x.lineTo(endX,endY);
+  x.stroke();
+
+  px=endX;
+  py=endY;
+  dx*=-1;
+ }
+
+ x.setLineDash([]);
+}
+
+// SHOOT
+c.onclick=e=>{
+ if(moving)return;
+ let rect=c.getBoundingClientRect();
+ let mx=e.clientX-rect.left;
+ let my=e.clientY-rect.top;
+
+ shooter.angle=Math.atan2(my-shooter.y,mx-shooter.x);
+
+ moving={
+  x:shooter.x,
+  y:shooter.y,
+  dx:Math.cos(shooter.angle)*7,
+  dy:Math.sin(shooter.angle)*7,
+  color:shooter.color,
+  trail:[]
+ };
+
+ shooter.color=colors[Math.floor(Math.random()*colors.length)];
+};
+
+// CLUSTER REMOVE
+function getCluster(i,color,visited=new Set()){
+ if(visited.has(i))return visited;
+ visited.add(i);
+ let a=balls[i];
+
+ for(let j=0;j<balls.length;j++){
+  if(i===j)continue;
+  let b=balls[j];
+  if(Math.hypot(a.x-b.x,a.y-b.y)<R*2+2 && b.color===color){
+   getCluster(j,color,visited);
+  }
+ }
+ return visited;
+}
+
+// UPDATE
+function update(){
+ if(moving){
+  moving.trail.push({x:moving.x,y:moving.y});
+  if(moving.trail.length>5)moving.trail.shift();
+
+  moving.x+=moving.dx;
+  moving.y+=moving.dy;
+
+  if(moving.x<R||moving.x>c.width-R) moving.dx*=-1;
+
+  if(moving.y<50){
+   place();
+  }
+
+  for(let b of balls){
+   if(Math.hypot(moving.x-b.x,moving.y-b.y)<R*2){
+    place();
+    break;
+   }
+  }
+ }
+}
+
+function place(){
+ balls.push({x:moving.x,y:moving.y,color:moving.color});
+ let cluster=getCluster(balls.length-1,moving.color);
+
+ if(cluster.size>=3){
+  // EXPLOSION EFFECT
+  for(let i of cluster){
+   for(let k=0;k<8;k++){
+    particles.push({
+     x:balls[i].x,
+     y:balls[i].y,
+     dx:(Math.random()-0.5)*6,
+     dy:(Math.random()-0.5)*6,
+     life:20,
+     color:balls[i].color
+    });
+   }
+  }
+  balls=balls.filter((_,i)=>!cluster.has(i));
+ }
+
+ moving=null;
+}
+
+// PARTICLES
+let particles=[];
+function updateParticles(){
+ particles=particles.filter(p=>p.life>0);
+ for(let p of particles){
+  p.x+=p.dx;
+  p.y+=p.dy;
+  p.life--;
+ }
+}
+
+// DRAW BALL
+function drawBall(b){
+ let g=x.createRadialGradient(b.x-5,b.y-5,2,b.x,b.y,R);
+ g.addColorStop(0,"#fff");
+ g.addColorStop(1,b.color);
+
+ x.fillStyle=g;
+ x.beginPath();
+ x.arc(b.x,b.y,R,0,Math.PI*2);
+ x.fill();
+}
+
+// DRAW
+function draw(){
+ x.clearRect(0,0,c.width,c.height);
+
+ for(let b of balls) drawBall(b);
+
+ if(moving){
+  for(let t of moving.trail){
+   x.globalAlpha=0.2;
+   drawBall(t);
+  }
+  x.globalAlpha=1;
+  drawBall(moving);
+ }
+
+ // particles
+ for(let p of particles){
+  x.globalAlpha=p.life/20;
+  x.fillStyle=p.color;
+  x.beginPath();
+  x.arc(p.x,p.y,4,0,Math.PI*2);
+  x.fill();
+ }
+ x.globalAlpha=1;
+
+ drawBall(shooter);
+ drawAim();
+}
+
+// LOOP
+function loop(){
+ update();
+ updateParticles();
+ draw();
+ requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
