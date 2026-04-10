@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Bubble Shooter FINAL</title></head>
+<body style="margin:0;display:flex;justify-content:center;align-items:center;height:100vh;background:#1a1c3a">
+<canvas id="c" width="420" height="760" style="background:#dcd8f5;border-radius:20px"></canvas>
+<script>
+const c=document.getElementById("c");
+const ctx=c.getContext("2d");
+
+const R=18, DX=36, DY=31;
+let grid=[], cols=10, rows=12;
+
+function randColor(){
+ return ["red","green","blue","yellow","purple"][Math.floor(Math.random()*5)];
+}
+
+for(let y=0;y<rows;y++){
+ let row=[];
+ for(let x=0;x<cols-(y%2);x++){
+  row.push(randColor());
+ }
+ grid.push(row);
+}
+
+function gridToPixel(x,y){
+ return {x:40+x*DX+(y%2?DX/2:0),y:60+y*DY};
+}
+
+let shooter={x:210,y:700,color:randColor(),next:randColor(),angle:-Math.PI/2};
+let ball=null;
+
+c.onclick=e=>{
+ if(ball)return;
+ let rect=c.getBoundingClientRect();
+ let mx=e.clientX-rect.left;
+ let my=e.clientY-rect.top;
+ shooter.angle=Math.atan2(my-shooter.y,mx-shooter.x);
+ ball={x:shooter.x,y:shooter.y,dx:Math.cos(shooter.angle)*8,dy:Math.sin(shooter.angle)*8,color:shooter.color};
+ shooter.color=shooter.next;
+ shooter.next=randColor();
+};
+
+function snap(px,py){
+ let best={x:0,y:0,d:9999};
+ for(let y=0;y<grid.length;y++){
+  for(let x=0;x<grid[y].length;x++){
+   let p=gridToPixel(x,y);
+   let d=Math.hypot(px-p.x,py-p.y);
+   if(d<best.d) best={x,y,d};
+  }
+ }
+ return best;
+}
+
+function getCluster(x,y,color,visited={}){
+ let key=x+","+y;
+ if(visited[key])return visited;
+ visited[key]=true;
+ let dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,-1]];
+ for(let d of dirs){
+  let nx=x+d[0], ny=y+d[1];
+  if(grid[ny] && grid[ny][nx]===color){
+   getCluster(nx,ny,color,visited);
+  }
+ }
+ return visited;
+}
+
+function place(){
+ let s=snap(ball.x,ball.y);
+ if(!grid[s.y]) grid[s.y]=[];
+ grid[s.y][s.x]=ball.color;
+
+ let cl=getCluster(s.x,s.y,ball.color);
+ if(Object.keys(cl).length>=3){
+  for(let k in cl){
+   let [x,y]=k.split(",");
+   grid[y][x]=null;
+  }
+ }
+ ball=null;
+}
+
+function update(){
+ if(ball){
+  ball.x+=ball.dx;
+  ball.y+=ball.dy;
+  if(ball.x<R||ball.x>c.width-R) ball.dx*=-1;
+  if(ball.y<60) place();
+
+  for(let y=0;y<grid.length;y++){
+   for(let x=0;x<grid[y].length;x++){
+    let p=gridToPixel(x,y);
+    if(grid[y][x] && Math.hypot(ball.x-p.x,ball.y-p.y)<R*2){
+     place(); return;
+    }
+   }
+  }
+ }
+}
+
+function drawBall(x,y,color){
+ let g=ctx.createRadialGradient(x-5,y-5,2,x,y,R);
+ g.addColorStop(0,"#fff");
+ g.addColorStop(1,color);
+ ctx.fillStyle=g;
+ ctx.beginPath();
+ ctx.arc(x,y,R,0,Math.PI*2);
+ ctx.fill();
+}
+
+function drawAim(){
+ let dx=Math.cos(shooter.angle);
+ let dy=Math.sin(shooter.angle);
+ ctx.setLineDash([5,5]);
+ ctx.beginPath();
+ ctx.moveTo(shooter.x,shooter.y);
+ ctx.lineTo(shooter.x+dx*200,shooter.y+dy*200);
+ ctx.stroke();
+ ctx.setLineDash([]);
+}
+
+function draw(){
+ ctx.clearRect(0,0,c.width,c.height);
+ for(let y=0;y<grid.length;y++){
+  for(let x=0;x<grid[y].length;x++){
+   if(grid[y][x]){
+    let p=gridToPixel(x,y);
+    drawBall(p.x,p.y,grid[y][x]);
+   }
+  }
+ }
+ if(ball) drawBall(ball.x,ball.y,ball.color);
+ drawBall(shooter.x,shooter.y,shooter.color);
+ drawAim();
+}
+
+function loop(){update();draw();requestAnimationFrame(loop);}
+loop();
+</script>
+</body>
+</html>
