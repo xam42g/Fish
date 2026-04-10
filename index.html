@@ -257,454 +257,6 @@
       line-height: 1.4;
     }
 
-
-    .menuCardRedesign {
-      width: min(94vw, 640px) !important;
-      position: relative;
-      overflow: hidden;
-      padding: 0 !important;
-      background:
-        linear-gradient(180deg, rgba(7,12,24,0.97), rgba(6,10,18,0.97)),
-        radial-gradient(circle at 12% 18%, rgba(0,194,255,0.12), transparent 24%),
-        radial-gradient(circle at 88% 20%, rgba(180,0,255,0.10), transparent 20%),
-        radial-gradient(circle at 55% 100%, rgba(255,80,120,0.08), transparent 28%);
-      border: 1px solid rgba(255,255,255,0.10);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
-    }
-    .menuHeroVisual {
-      height: 180px;
-      position: relative;
-      overflow: hidden;
-      background:
-        radial-gradient(circle at 50% 50%, rgba(65,140,255,0.30), transparent 20%),
-        linear-gradient(135deg, #07111f 0%, #111a33 50%, #190f2e 100%);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .menuNebula {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(12px);
-      opacity: 0.95;
-    }
-    .menuNebula.a { width: 180px; height: 180px; left: -20px; top: -20px; background: rgba(0,180,255,0.18); }
-    .menuNebula.b { width: 220px; height: 220px; right: -30px; top: -40px; background: rgba(160,80,255,0.18); }
-    .menuNebula.c { width: 160px; height: 160px; left: 42%; bottom: -60px; background: rgba(255,70,130,0.12); }
-    .menuArenaRing {
-      position: absolute;
-      inset: auto 50% 24px auto;
-      transform: translateX(50%);
-      width: 320px;
-      height: 90px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.10);
-      box-shadow: 0 0 0 10px rgba(255,255,255,0.02);
-    }
-    .menuOrb {
-      position: absolute;
-      border-radius: 50%;
-      box-shadow: 0 0 18px rgba(0,0,0,0.25);
-    }
-    .menuOrb.blue {
-      width: 64px; height: 64px;
-      left: 50%; top: 56%;
-      transform: translate(-50%, -50%);
-      background: radial-gradient(circle at 35% 30%, #9eeeff, #3bc8ff 45%, #156cff 100%);
-      border: 2px solid rgba(255,255,255,0.18);
-    }
-    .menuOrb.red1, .menuOrb.red2 {
-      width: 44px; height: 44px;
-      background: radial-gradient(circle at 35% 30%, #ffb0b8, #ff5671 46%, #ce1c38 100%);
-      border: 2px solid rgba(255,255,255,0.14);
-    }
-    .menuOrb.red1 { left: 22%; top: 42%; }
-    .menuOrb.red2 { right: 22%; top: 40%; }
-    .menuSection {
-      padding: 22px;
-    }
-    .menuKicker {
-      display: inline-block;
-      margin-bottom: 10px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(76,231,255,0.10);
-      border: 1px solid rgba(76,231,255,0.18);
-      color: #baf4ff;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .4px;
-    }
-    .menuTitleNew {
-      font-size: 48px;
-      line-height: 0.95;
-      letter-spacing: -1.3px;
-      margin: 0 0 12px 0;
-    }
-    .menuDescNew {
-      font-size: 15px;
-      line-height: 1.55;
-      color: #b9cae2;
-      margin: 0 0 18px 0;
-    }
-    .menuInfoGrid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin: 0 0 18px 0;
-    }
-    .menuInfoBox {
-      padding: 12px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-    .menuInfoBox strong {
-      display: block;
-      margin-bottom: 4px;
-      font-size: 14px;
-    }
-    .menuInfoBox span {
-      color: #b0c5e2;
-      font-size: 13px;
-      line-height: 1.4;
-    }
-    .menuLabel {
-      display: block;
-      margin: 0 0 6px 0;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.7px;
-      color: #9db4cf;
-      font-weight: 700;
-    }
-    .menuActions button + button {
-      margin-top: 10px;
-    }
-    .menuFooterHint {
-      margin-top: 14px;
-      font-size: 12px;
-      line-height: 1.45;
-      color: #92a9c8;
-      text-align: center;
-    }
-
-    .menuHeroVisual::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.06) 45%, transparent 70%);
-      transform: translateX(-120%);
-      animation: menuSweep 6.5s ease-in-out infinite;
-      pointer-events: none;
-    }
-    .menuCardRedesign {
-      animation: menuFloat 5.5s ease-in-out infinite;
-    }
-    .menuNebula.a { animation: nebulaDriftA 9s ease-in-out infinite; }
-    .menuNebula.b { animation: nebulaDriftB 11s ease-in-out infinite; }
-    .menuNebula.c { animation: nebulaPulse 7s ease-in-out infinite; }
-    .menuOrb.blue { animation: heroPulse 2.8s ease-in-out infinite; }
-    .menuOrb.red1 { animation: enemyHoverLeft 3.6s ease-in-out infinite; }
-    .menuOrb.red2 { animation: enemyHoverRight 4.1s ease-in-out infinite; }
-    .menuArenaRing { animation: ringGlow 4s ease-in-out infinite; }
-    .menuTitleNew {
-      background: linear-gradient(90deg, #ffffff, #c9edff 30%, #ffffff 60%, #d7c4ff 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      filter: drop-shadow(0 4px 18px rgba(130,170,255,0.16));
-      animation: titleGlow 4.8s ease-in-out infinite;
-    }
-    .menuKicker { animation: kickerPulse 3s ease-in-out infinite; }
-    .menuActions button:first-child {
-      position: relative;
-      overflow: hidden;
-    }
-    .menuActions button:first-child::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 42%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
-      transform: skewX(-20deg) translateX(-220%);
-      animation: buttonShine 4.2s ease-in-out infinite;
-      pointer-events: none;
-    }
-
-    @keyframes menuFloat {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
-    }
-    @keyframes menuSweep {
-      0%, 65%, 100% { transform: translateX(-120%); opacity: 0; }
-      12%, 42% { opacity: 1; }
-      55% { transform: translateX(120%); opacity: 0; }
-    }
-    @keyframes nebulaDriftA {
-      0%,100% { transform: translate(0,0) scale(1); }
-      50% { transform: translate(12px,8px) scale(1.06); }
-    }
-    @keyframes nebulaDriftB {
-      0%,100% { transform: translate(0,0) scale(1); }
-      50% { transform: translate(-14px,10px) scale(1.08); }
-    }
-    @keyframes nebulaPulse {
-      0%,100% { transform: scale(1); opacity: .95; }
-      50% { transform: scale(1.12); opacity: .7; }
-    }
-    @keyframes heroPulse {
-      0%,100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 18px rgba(0,0,0,.25); }
-      50% { transform: translate(-50%, -50%) scale(1.06); box-shadow: 0 0 28px rgba(59,200,255,.28); }
-    }
-    @keyframes enemyHoverLeft {
-      0%,100% { transform: translate(0,0) scale(1); }
-      50% { transform: translate(-10px,6px) scale(1.04); }
-    }
-    @keyframes enemyHoverRight {
-      0%,100% { transform: translate(0,0) scale(1); }
-      50% { transform: translate(10px,4px) scale(1.04); }
-    }
-    @keyframes ringGlow {
-      0%,100% { box-shadow: 0 0 0 10px rgba(255,255,255,0.02); opacity: .9; }
-      50% { box-shadow: 0 0 0 14px rgba(255,255,255,0.04), 0 0 40px rgba(76,231,255,0.08); opacity: 1; }
-    }
-    @keyframes titleGlow {
-      0%,100% { filter: drop-shadow(0 4px 18px rgba(130,170,255,0.16)); }
-      50% { filter: drop-shadow(0 6px 26px rgba(160,100,255,0.22)); }
-    }
-    @keyframes kickerPulse {
-      0%,100% { box-shadow: 0 0 0 rgba(76,231,255,0); }
-      50% { box-shadow: 0 0 18px rgba(76,231,255,0.10); }
-    }
-    @keyframes buttonShine {
-      0%, 70%, 100% { transform: skewX(-20deg) translateX(-220%); opacity: 0; }
-      15%, 35% { opacity: 1; }
-      50% { transform: skewX(-20deg) translateX(320%); opacity: 0; }
-    }
-
-
-    .menuUltraCard {
-      width: min(94vw, 520px) !important;
-      padding: 0 !important;
-      overflow: hidden;
-      position: relative;
-      background:
-        linear-gradient(180deg, rgba(7,12,24,0.98), rgba(6,10,18,0.98)),
-        radial-gradient(circle at 20% 0%, rgba(70,170,255,0.14), transparent 26%),
-        radial-gradient(circle at 80% 0%, rgba(180,80,255,0.12), transparent 22%);
-      border: 1px solid rgba(255,255,255,0.10);
-      box-shadow: 0 24px 60px rgba(0,0,0,0.48);
-      animation: ultraFloat 6s ease-in-out infinite;
-    }
-    .menuUltraBg {
-      position: relative;
-      height: 170px;
-      overflow: hidden;
-      background:
-        linear-gradient(135deg, #07111f 0%, #101a31 45%, #180f2d 100%);
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .menuUltraBg::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.06) 45%, transparent 70%);
-      transform: translateX(-120%);
-      animation: ultraSweep 6.5s ease-in-out infinite;
-      pointer-events: none;
-    }
-    .menuRing {
-      position: absolute;
-      left: 50%;
-      bottom: 26px;
-      transform: translateX(-50%);
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.10);
-      animation: ringPulse 4s ease-in-out infinite;
-    }
-    .menuRing.ring1 { width: 320px; height: 88px; }
-    .menuRing.ring2 { width: 250px; height: 66px; bottom: 37px; opacity: 0.7; animation-delay: .4s; }
-    .menuRing.ring3 { width: 180px; height: 46px; bottom: 48px; opacity: 0.5; animation-delay: .8s; }
-    .menuDot {
-      position: absolute;
-      border-radius: 50%;
-      box-shadow: 0 0 18px rgba(0,0,0,0.24);
-    }
-    .menuDot.red {
-      width: 42px;
-      height: 42px;
-      background: radial-gradient(circle at 35% 30%, #ffb0b8, #ff5671 46%, #ce1c38 100%);
-      border: 2px solid rgba(255,255,255,0.14);
-    }
-    .menuDot.blue {
-      width: 62px;
-      height: 62px;
-      background: radial-gradient(circle at 35% 30%, #9eeeff, #3bc8ff 45%, #156cff 100%);
-      border: 2px solid rgba(255,255,255,0.18);
-    }
-    .leftDot {
-      left: 20%;
-      top: 44%;
-      animation: enemyFloatL 3.8s ease-in-out infinite;
-    }
-    .centerDot {
-      left: 50%;
-      top: 52%;
-      transform: translate(-50%, -50%);
-      animation: heroPulse 2.8s ease-in-out infinite;
-    }
-    .rightDot {
-      right: 20%;
-      top: 40%;
-      animation: enemyFloatR 4.2s ease-in-out infinite;
-    }
-    .menuUltraContent {
-      padding: 22px;
-    }
-    .menuTinyTag {
-      display: inline-block;
-      margin-bottom: 10px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(76,231,255,0.10);
-      border: 1px solid rgba(76,231,255,0.18);
-      color: #baf4ff;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .4px;
-      animation: tagPulse 3s ease-in-out infinite;
-    }
-    .menuUltraTitle {
-      margin: 0 0 10px 0;
-      font-size: 50px;
-      line-height: 0.95;
-      letter-spacing: -1.4px;
-      background: linear-gradient(90deg, #ffffff, #c9edff 30%, #ffffff 60%, #d7c4ff 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      filter: drop-shadow(0 4px 18px rgba(130,170,255,0.16));
-      animation: titleGlow 5s ease-in-out infinite;
-    }
-    .menuUltraSub {
-      margin: 0 0 16px 0;
-      font-size: 15px;
-      line-height: 1.5;
-      color: #b9cae2;
-    }
-    .menuMiniStats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .menuMiniStat {
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: #eef6ff;
-      font-size: 13px;
-      font-weight: 700;
-      text-align: center;
-      animation: statBreath 4.5s ease-in-out infinite;
-    }
-    .menuMiniStat:nth-child(2) { animation-delay: .2s; }
-    .menuMiniStat:nth-child(3) { animation-delay: .4s; }
-    .menuMiniStat:nth-child(4) { animation-delay: .6s; }
-    .menuUltraButtons button + button {
-      margin-top: 10px;
-    }
-    .menuUltraButtons button:first-child {
-      position: relative;
-      overflow: hidden;
-    }
-    .menuUltraButtons button:first-child::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 42%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
-      transform: skewX(-20deg) translateX(-220%);
-      animation: buttonShine 4.2s ease-in-out infinite;
-      pointer-events: none;
-    }
-    .menuUltraControls {
-      margin-top: 14px;
-      font-size: 12px;
-      line-height: 1.4;
-      color: #92a9c8;
-      text-align: center;
-    }
-    @keyframes ultraFloat {
-      0%,100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
-    }
-    @keyframes ultraSweep {
-      0%,65%,100% { transform: translateX(-120%); opacity: 0; }
-      12%,42% { opacity: 1; }
-      55% { transform: translateX(120%); opacity: 0; }
-    }
-    @keyframes ringPulse {
-      0%,100% { box-shadow: 0 0 0 10px rgba(255,255,255,0.02); opacity: .88; }
-      50% { box-shadow: 0 0 0 14px rgba(255,255,255,0.04), 0 0 34px rgba(76,231,255,0.08); opacity: 1; }
-    }
-    @keyframes heroPulse {
-      0%,100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 18px rgba(0,0,0,.25); }
-      50% { transform: translate(-50%, -50%) scale(1.06); box-shadow: 0 0 28px rgba(59,200,255,.28); }
-    }
-    @keyframes enemyFloatL {
-      0%,100% { transform: translate(0,0) scale(1); }
-      50% { transform: translate(-10px,6px) scale(1.04); }
-    }
-    @keyframes enemyFloatR {
-      0%,100% { transform: translate(0,0) scale(1); }
-      50% { transform: translate(10px,4px) scale(1.04); }
-    }
-    @keyframes titleGlow {
-      0%,100% { filter: drop-shadow(0 4px 18px rgba(130,170,255,0.16)); }
-      50% { filter: drop-shadow(0 6px 26px rgba(160,100,255,0.22)); }
-    }
-    @keyframes tagPulse {
-      0%,100% { box-shadow: 0 0 0 rgba(76,231,255,0); }
-      50% { box-shadow: 0 0 18px rgba(76,231,255,0.10); }
-    }
-    @keyframes statBreath {
-      0%,100% { transform: translateY(0); }
-      50% { transform: translateY(-2px); }
-    }
-    @keyframes buttonShine {
-      0%,70%,100% { transform: skewX(-20deg) translateX(-220%); opacity: 0; }
-      15%,35% { opacity: 1; }
-      50% { transform: skewX(-20deg) translateX(320%); opacity: 0; }
-    }
-    @media (max-width: 720px) {
-      .menuUltraCard {
-        width: min(96vw, 460px) !important;
-      }
-      .menuUltraBg {
-        height: 148px;
-      }
-      .menuUltraTitle {
-        font-size: 40px;
-      }
-      .menuMiniStats {
-        grid-template-columns: 1fr 1fr;
-      }
-      .menuUltraContent {
-        padding: 18px;
-      }
-    }
-
-    @media (max-width: 720px) {
-      .menuCardRedesign { width: min(96vw, 460px) !important; }
-      .menuHeroVisual { height: 150px; }
-      .menuTitleNew { font-size: 38px; }
-      .menuInfoGrid { grid-template-columns: 1fr; }
-      .menuSection { padding: 18px; }
-    }
-
     @media (max-width: 720px) {
       .card {
         width: min(96vw, 420px);
@@ -719,46 +271,47 @@
       .dockValue { font-size: 20px; }
     }
   </style>
+
+<style id="ga-final-scroll-fix">
+  .overlay {
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+  .card {
+    -webkit-overflow-scrolling: touch !important;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+  #shopOverlay .card,
+  #leaderboardOverlay .card {
+    max-height: min(86dvh, 820px) !important;
+    overflow-y: auto !important;
+    padding-bottom: 20px !important;
+  }
+  #closeShopBtn,
+  #closeLeaderboardBtn {
+    position: sticky;
+    bottom: 0;
+    z-index: 12;
+    background: rgba(11, 18, 34, 0.98) !important;
+  }
+</style>
+
 </head>
 <body>
   <div id="app">
     <canvas id="starfield" width="1280" height="720"></canvas>
     <canvas id="game" width="1280" height="720"></canvas>
 
-    
-<div id="menuOverlay" class="overlay show">
-      <div class="card menuUltraCard">
-        <div class="menuUltraBg">
-          <div class="menuRing ring1"></div>
-          <div class="menuRing ring2"></div>
-          <div class="menuRing ring3"></div>
-          <div class="menuDot red leftDot"></div>
-          <div class="menuDot blue centerDot"></div>
-          <div class="menuDot red rightDot"></div>
-        </div>
+    <div id="menuOverlay" class="overlay show">
+      <div class="card">
+        <h1>Galaxy Arena</h1>
+        <p class="sub"></p>
+        <input id="nameInput" type="text" maxlength="16" placeholder="Dein Name" />
+        <button id="startBtn">Spiel starten</button>
+        <button id="openShopFromMenu" class="secondary">Shop öffnen</button>
+        <button id="openLeaderboardFromMenu" class="secondary">Leaderboard</button>
 
-        <div class="menuUltraContent">
-          <div class="menuTinyTag">Arcade Survival</div>
-          <h1 class="menuUltraTitle">Galaxy Arena</h1>
-          <p class="menuUltraSub">Survive. Collect. Beat your high score.</p>
-
-          <div class="menuMiniStats">
-            <div class="menuMiniStat">Fast Runs</div>
-            <div class="menuMiniStat">Abilities</div>
-            <div class="menuMiniStat">Store</div>
-            <div class="menuMiniStat">Scores</div>
-          </div>
-
-          <input id="nameInput" type="text" maxlength="16" placeholder="Enter your name" />
-
-          <div class="menuUltraButtons">
-            <button id="startBtn">Start Game</button>
-            <button id="openShopFromMenu" class="secondary">Store</button>
-            <button id="openLeaderboardFromMenu" class="secondary">High Scores</button>
-          </div>
-
-          <div class="menuUltraControls">WASD / Arrows · Space · Q · E · Shift</div>
-        </div>
       </div>
     </div>
 
@@ -4028,182 +3581,164 @@ if (renameBtn) {
 </script>
 
 
-<style id="ga-v2-upgrades-style">
-  #bestBanner {
-    position: absolute;
-    top: calc(70px + env(safe-area-inset-top));
-    left: 50%;
-    transform: translateX(-50%) translateY(-10px);
-    z-index: 30;
-    padding: 10px 16px;
-    border-radius: 999px;
-    background: rgba(14, 24, 44, 0.92);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: #f8fdff;
-    font-weight: 700;
-    letter-spacing: 0.3px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .2s ease, transform .2s ease;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+<script id="ga-final-stability-patch">
+(function () {
+  function resetInputs() {
+    try {
+      if (typeof keys !== "undefined") {
+        Object.keys(keys).forEach(k => keys[k] = false);
+      }
+    } catch (e) {}
+    try {
+      if (typeof virtualStick !== "undefined") {
+        virtualStick.active = false;
+        virtualStick.x = 0;
+        virtualStick.y = 0;
+      }
+    } catch (e) {}
+    try { lastTime = performance.now(); } catch (e) {}
   }
-  #bestBanner.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-</style>
 
-<script id="ga-v2-upgrades-script">
+  function restorePlayIfNeeded() {
+    try {
+      if (!menuOverlay.classList.contains("show") && !gameOverOverlay.classList.contains("show")) {
+        hudTop.style.display = "flex";
+        dock.style.display = "flex";
+        if (typeof state !== "undefined" && state !== "menu" && state !== "gameover") state = "play";
+      }
+    } catch (e) {}
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (typeof keys === "undefined") return;
+    const k = e.key;
+    if (!k) return;
+    keys[k] = true;
+    keys[k.toLowerCase()] = true;
+    keys[k.toUpperCase()] = true;
+    if (k === "ArrowUp") keys["w"] = true;
+    if (k === "ArrowDown") keys["s"] = true;
+    if (k === "ArrowLeft") keys["a"] = true;
+    if (k === "ArrowRight") keys["d"] = true;
+  }, true);
+
+  document.addEventListener("keyup", function (e) {
+    if (typeof keys === "undefined") return;
+    const k = e.key;
+    if (!k) return;
+    keys[k] = false;
+    keys[k.toLowerCase()] = false;
+    keys[k.toUpperCase()] = false;
+    if (k === "ArrowUp") keys["w"] = false;
+    if (k === "ArrowDown") keys["s"] = false;
+    if (k === "ArrowLeft") keys["a"] = false;
+    if (k === "ArrowRight") keys["d"] = false;
+  }, true);
+
+  window.addEventListener("load", function () {
+    const shopBtn = document.getElementById("closeShopBtn");
+    if (shopBtn) {
+      const clone = shopBtn.cloneNode(true);
+      shopBtn.parentNode.replaceChild(clone, shopBtn);
+      clone.addEventListener("click", function () {
+        if (typeof hideShop === "function") hideShop();
+        resetInputs();
+        restorePlayIfNeeded();
+      });
+    }
+
+    const lbBtn = document.getElementById("closeLeaderboardBtn");
+    if (lbBtn) {
+      const clone = lbBtn.cloneNode(true);
+      lbBtn.parentNode.replaceChild(clone, lbBtn);
+      clone.addEventListener("click", function () {
+        if (typeof hideLeaderboard === "function") hideLeaderboard();
+        resetInputs();
+        restorePlayIfNeeded();
+      });
+    }
+
+    const startBtn = document.getElementById("startBtn");
+    if (startBtn && typeof startGame === "function") {
+      const clone = startBtn.cloneNode(true);
+      startBtn.parentNode.replaceChild(clone, startBtn);
+      clone.addEventListener("click", startGame);
+    }
+  });
+})();
+</script>
+
+
+<script id="ga-safe-visual-polish">
 (function () {
   if (typeof GAME === "undefined") return;
 
-  // ---------- UI: New Best banner ----------
-  const app = document.getElementById("app");
-  let bestBanner = document.getElementById("bestBanner");
-  if (!bestBanner && app) {
-    bestBanner = document.createElement("div");
-    bestBanner.id = "bestBanner";
-    bestBanner.textContent = "New Best Score!";
-    app.appendChild(bestBanner);
-  }
-  let bestBannerTimer = 0;
+  drawBackgroundScene = function(ctx) {
+    ctx.clearRect(0, 0, GAME.w, GAME.h);
+    const g = ctx.createLinearGradient(0, 0, 0, GAME.h);
+    g.addColorStop(0, "#0a1222");
+    g.addColorStop(0.45, "#1b0d24");
+    g.addColorStop(1, "#050811");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, GAME.w, GAME.h);
 
-  function showBestBanner() {
-    if (!bestBanner) return;
-    bestBanner.classList.add("show");
-    bestBannerTimer = 2.2;
-  }
+    const n1 = ctx.createRadialGradient(GAME.w * 0.22, GAME.h * 0.24, 0, GAME.w * 0.22, GAME.h * 0.24, 240);
+    n1.addColorStop(0, "rgba(66,165,255,0.13)");
+    n1.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = n1;
+    ctx.fillRect(0,0,GAME.w,GAME.h);
 
-  // ---------- Juice: screen shake ----------
-  let shakeTime = 0;
-  let shakeStrength = 0;
+    const n2 = ctx.createRadialGradient(GAME.w * 0.82, GAME.h * 0.74, 0, GAME.w * 0.82, GAME.h * 0.74, 270);
+    n2.addColorStop(0, "rgba(255,100,140,0.12)");
+    n2.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = n2;
+    ctx.fillRect(0,0,GAME.w,GAME.h);
 
-  function addShake(time, strength) {
-    shakeTime = Math.max(shakeTime, time);
-    shakeStrength = Math.max(shakeStrength, strength);
-  }
+    const n3 = ctx.createRadialGradient(GAME.w * 0.75, GAME.h * 0.20, 0, GAME.w * 0.75, GAME.h * 0.20, 200);
+    n3.addColorStop(0, "rgba(160,110,255,0.10)");
+    n3.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = n3;
+    ctx.fillRect(0,0,GAME.w,GAME.h);
 
-  // ---------- Audio: lightweight procedural sound ----------
-  let audioCtx = null;
-  function getAudio() {
-    try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === "suspended") audioCtx.resume();
-      return audioCtx;
-    } catch {
-      return null;
+    ctx.strokeStyle = "rgba(140,160,220,0.045)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= GAME.w; x += 64) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GAME.h); ctx.stroke();
     }
-  }
-
-  function tone(type, freq, duration, volume, slideTo) {
-    const ctx = getAudio();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
-    if (slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), now + duration);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(volume, now + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + duration + 0.02);
-  }
-
-  const SFX = {
-    coin() { tone("triangle", 880, 0.08, 0.03, 1320); },
-    hit() {
-      tone("sawtooth", 180, 0.12, 0.04, 70);
-      tone("square", 90, 0.14, 0.02, 45);
-    },
-    dash() { tone("square", 340, 0.08, 0.03, 540); },
-    shield() { tone("triangle", 420, 0.12, 0.025, 620); },
-    teleport() { tone("triangle", 520, 0.15, 0.025, 220); },
-    speed() { tone("square", 260, 0.12, 0.025, 420); },
-    gameover() {
-      tone("sawtooth", 240, 0.16, 0.03, 120);
-      tone("triangle", 180, 0.22, 0.025, 80);
+    for (let y = 0; y <= GAME.h; y += 64) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GAME.w, y); ctx.stroke();
     }
   };
 
-  function unlockAudio() { getAudio(); }
-  document.addEventListener("pointerdown", unlockAudio, { once: true });
-  document.addEventListener("keydown", unlockAudio, { once: true });
-
-  // ---------- Enemy variants / progression ----------
-  GAME.enemySpawnSeconds = 1.55;
-  GAME.maxEnemies = 18;
-
-  function assignEnemyVariant(enemy) {
-    const roll = Math.random();
-    if (score >= 1000 && roll < 0.18) {
-      enemy.variant = "brute";
-      enemy.r = 21;
-      enemy.vx *= 0.75;
-      enemy.vy *= 0.75;
-    } else if (score >= 500 && roll < 0.34) {
-      enemy.variant = "swift";
-      enemy.r = 12;
-      enemy.vx *= 1.35;
-      enemy.vy *= 1.35;
-    } else if (score >= 1500 && roll < 0.48) {
-      enemy.variant = "zigzag";
-      enemy.r = 15;
-      enemy.phase = Math.random() * Math.PI * 2;
-      enemy.baseVx = enemy.vx;
-      enemy.baseVy = enemy.vy;
-    } else {
-      enemy.variant = "basic";
-      enemy.r = 16;
-    }
-  }
-
-  const oldSpawnEnemyV2 = spawnEnemy;
-  spawnEnemy = function() {
-    const before = enemies.length;
-    oldSpawnEnemyV2();
-    if (enemies.length > before) {
-      assignEnemyVariant(enemies[enemies.length - 1]);
+  drawBlocks = function() {
+    for (const b of blocks) {
+      const grad = gameCtx.createLinearGradient(b.x, b.y, b.x + b.w, b.y + b.h);
+      grad.addColorStop(0, "rgba(84,112,199,0.98)");
+      grad.addColorStop(1, "rgba(52,78,146,0.98)");
+      gameCtx.save();
+      gameCtx.shadowColor = "rgba(90,130,255,0.18)";
+      gameCtx.shadowBlur = 14;
+      gameCtx.fillStyle = grad;
+      roundRect(gameCtx, b.x, b.y, b.w, b.h, 12, true, false);
+      gameCtx.shadowBlur = 0;
+      gameCtx.strokeStyle = "rgba(255,255,255,0.10)";
+      gameCtx.lineWidth = 1.2;
+      roundRect(gameCtx, b.x, b.y, b.w, b.h, 12, false, true);
+      gameCtx.restore();
     }
   };
 
-  const oldUpdateEnemyV2 = updateEnemy;
-  updateEnemy = function(enemy, dt) {
-    if (enemy.variant === "zigzag") {
-      enemy.phase = (enemy.phase || 0) + dt * 7;
-      const mag = Math.hypot(enemy.baseVx || enemy.vx, enemy.baseVy || enemy.vy) || 1;
-      const dirx = (enemy.baseVx || enemy.vx) / mag;
-      const diry = (enemy.baseVy || enemy.vy) / mag;
-      const px = -diry;
-      const py = dirx;
-      const wobble = Math.sin(enemy.phase) * 90;
-      enemy.vx = dirx * mag + px * wobble;
-      enemy.vy = diry * mag + py * wobble;
-    }
-    oldUpdateEnemyV2(enemy, dt);
-  };
-
-  // ---------- Cleaner, clearer enemies ----------
   drawEnemies = function() {
     for (const e of enemies) {
       gameCtx.save();
       gameCtx.translate(e.x, e.y);
+      gameCtx.shadowColor = "rgba(255,80,120,0.30)";
+      gameCtx.shadowBlur = 14;
 
-      let c0 = "#ff8ba0", c1 = "#ff546f", c2 = "#cf1d37";
-      if (e.variant === "swift") { c0 = "#ffddb1"; c1 = "#ff9352"; c2 = "#d64f1e"; }
-      if (e.variant === "brute") { c0 = "#ff9db8"; c1 = "#ff4f7f"; c2 = "#b51237"; }
-      if (e.variant === "zigzag") { c0 = "#ffb3d1"; c1 = "#ff5d8d"; c2 = "#aa1140"; }
-
-      gameCtx.shadowColor = "rgba(255,80,120,0.35)";
-      gameCtx.shadowBlur = 18;
-
-      const grad = gameCtx.createRadialGradient(-e.r * 0.35, -e.r * 0.45, 2, 0, 0, e.r * 1.15);
-      grad.addColorStop(0, c0);
-      grad.addColorStop(0.45, c1);
-      grad.addColorStop(1, c2);
+      const grad = gameCtx.createRadialGradient(-4, -5, 2, 0, 0, e.r * 1.15);
+      grad.addColorStop(0, "#ff9cab");
+      grad.addColorStop(0.45, "#ff5671");
+      grad.addColorStop(1, "#cf1c39");
 
       gameCtx.beginPath();
       gameCtx.fillStyle = grad;
@@ -4211,87 +3746,56 @@ if (renameBtn) {
       gameCtx.fill();
 
       gameCtx.shadowBlur = 0;
-      gameCtx.lineWidth = 1.3;
       gameCtx.strokeStyle = "rgba(255,255,255,0.16)";
+      gameCtx.lineWidth = 1.2;
       gameCtx.stroke();
 
-      // eyes
-      gameCtx.fillStyle = "#fff3b0";
+      gameCtx.fillStyle = "#fff0af";
       gameCtx.beginPath();
-      gameCtx.ellipse(-e.r * 0.28, -e.r * 0.12, Math.max(2.5, e.r * 0.18), Math.max(3.2, e.r * 0.25), -0.2, 0, Math.PI * 2);
-      gameCtx.ellipse(e.r * 0.28, -e.r * 0.12, Math.max(2.5, e.r * 0.18), Math.max(3.2, e.r * 0.25), 0.2, 0, Math.PI * 2);
+      gameCtx.ellipse(-e.r * 0.26, -e.r * 0.10, Math.max(2.4, e.r * 0.18), Math.max(3.3, e.r * 0.24), -0.2, 0, Math.PI * 2);
+      gameCtx.ellipse(e.r * 0.26, -e.r * 0.10, Math.max(2.4, e.r * 0.18), Math.max(3.3, e.r * 0.24), 0.2, 0, Math.PI * 2);
       gameCtx.fill();
 
-      gameCtx.strokeStyle = "rgba(80,8,20,0.95)";
-      gameCtx.lineWidth = 2.2;
+      gameCtx.strokeStyle = "#5a0d18";
+      gameCtx.lineWidth = 2;
       gameCtx.beginPath();
-      gameCtx.moveTo(-e.r * 0.5, -e.r * 0.46);
-      gameCtx.lineTo(-e.r * 0.12, -e.r * 0.34);
-      gameCtx.moveTo(e.r * 0.5, -e.r * 0.46);
-      gameCtx.lineTo(e.r * 0.12, -e.r * 0.34);
+      gameCtx.moveTo(-e.r * 0.44, -e.r * 0.42); gameCtx.lineTo(-e.r * 0.10, -e.r * 0.30);
+      gameCtx.moveTo(e.r * 0.44, -e.r * 0.42); gameCtx.lineTo(e.r * 0.10, -e.r * 0.30);
       gameCtx.stroke();
 
-      // mouth
-      gameCtx.fillStyle = "rgba(75,8,18,0.95)";
-      if (e.variant === "brute") {
-        gameCtx.fillRect(-e.r * 0.34, e.r * 0.20, e.r * 0.68, e.r * 0.28);
-      } else {
-        gameCtx.beginPath();
-        gameCtx.arc(0, e.r * 0.34, e.r * 0.34, 0.12, Math.PI - 0.12);
-        gameCtx.fill();
-      }
-
-      // label silhouette hint
-      if (e.variant === "swift") {
-        gameCtx.fillStyle = "rgba(255,255,255,0.10)";
-        gameCtx.beginPath();
-        gameCtx.arc(0, 0, e.r + 5, 0, Math.PI * 2);
-        gameCtx.strokeStyle = "rgba(255,170,80,0.16)";
-        gameCtx.lineWidth = 2;
-        gameCtx.stroke();
-      }
+      gameCtx.fillStyle = "#4b0812";
+      gameCtx.beginPath();
+      gameCtx.arc(0, e.r * 0.32, e.r * 0.30, 0.15, Math.PI - 0.15);
+      gameCtx.fill();
 
       gameCtx.restore();
     }
   };
 
-  // ---------- Player clarity ----------
-  const oldDrawPlayerV2 = drawPlayer;
-  drawPlayer = function() {
-    oldDrawPlayerV2();
-    gameCtx.save();
-    gameCtx.beginPath();
-    gameCtx.strokeStyle = "rgba(255,255,255,0.14)";
-    gameCtx.lineWidth = 1.2;
-    gameCtx.arc(player.x, player.y, player.r + 1.5, 0, Math.PI * 2);
-    gameCtx.stroke();
-    gameCtx.restore();
-  };
-
-  // ---------- Coin clarity ----------
   drawCoins = function() {
     gameCtx.textAlign = "center";
     gameCtx.textBaseline = "middle";
     gameCtx.font = "bold 14px Arial";
     for (const c of coins) {
-      const pulse = 1 + Math.sin(c.pulse) * 0.1;
+      const pulse = 1 + Math.sin(c.pulse) * 0.08;
       gameCtx.save();
       gameCtx.translate(c.x, c.y);
       gameCtx.scale(pulse, pulse);
+
       gameCtx.beginPath();
       gameCtx.fillStyle = "rgba(255,220,90,0.18)";
-      gameCtx.arc(0, 0, c.r + 7, 0, Math.PI * 2);
+      gameCtx.arc(0, 0, c.r + 6, 0, Math.PI * 2);
       gameCtx.fill();
 
       const g = gameCtx.createRadialGradient(-2, -3, 2, 0, 0, c.r);
       g.addColorStop(0, "#fff2ae");
-      g.addColorStop(0.4, "#ffd85a");
+      g.addColorStop(0.45, "#ffd85a");
       g.addColorStop(1, "#cf8f09");
       gameCtx.beginPath();
       gameCtx.fillStyle = g;
       gameCtx.arc(0, 0, c.r, 0, Math.PI * 2);
       gameCtx.fill();
-      gameCtx.strokeStyle = "rgba(255,255,255,0.20)";
+      gameCtx.strokeStyle = "rgba(255,255,255,0.22)";
       gameCtx.lineWidth = 2;
       gameCtx.stroke();
 
@@ -4301,284 +3805,17 @@ if (renameBtn) {
     }
   };
 
-  // ---------- Better particles ----------
-  const oldMakeParticleV2 = makeParticle;
-  makeParticle = function(x, y, color, speedBase) {
-    const p = oldMakeParticleV2(x, y, color, speedBase);
-    p.size *= 1.2;
-    p.life += 0.04;
-    return p;
-  };
-
-  // ---------- Hooks for juice / sfx ----------
-  const oldTryDashV2 = tryDash;
-  tryDash = function() {
-    const before = player.dashCooldown;
-    oldTryDashV2();
-    if (before <= 0 && player.dashCooldown > 0) {
-      SFX.dash();
-      addShake(0.08, 3);
-    }
-  };
-
-  const oldTakeHitV2 = takeHit;
-  takeHit = function() {
-    const livesBefore = player.lives;
-    oldTakeHitV2();
-    if (player.lives < livesBefore) {
-      SFX.hit();
-      addShake(0.16, 8);
-      screenFlash = Math.max(screenFlash, 0.18);
-      if (player.lives <= 0) SFX.gameover();
-    }
-  };
-
-  // abilities via keyboard and touch
-  document.addEventListener("keydown", function (e) {
-    if (state !== "play") return;
-    if (e.code === "KeyQ" && save.ownedAbilities && save.ownedAbilities.shield && abilityState.shieldCooldown <= 0) {
-      SFX.shield();
-      addShake(0.06, 2);
-    }
-    if (e.code === "KeyE" && save.ownedAbilities && save.ownedAbilities.teleport && abilityState.teleportCooldown <= 0) {
-      SFX.teleport();
-      addShake(0.08, 4);
-    }
-    if ((e.code === "ShiftLeft" || e.code === "ShiftRight") && save.ownedAbilities && save.ownedAbilities.speed && abilityState.speedCooldown <= 0) {
-      SFX.speed();
-    }
-  }, true);
-
-  // catch touch buttons too
-  const tryPatchTouch = setInterval(function () {
-    const dashTouchBtn = document.getElementById("dashTouchBtn");
-    const shieldTouchBtn = document.getElementById("shieldTouchBtn");
-    const teleportTouchBtn = document.getElementById("teleportTouchBtn");
-    const speedTouchBtn = document.getElementById("speedTouchBtn");
-    if (!dashTouchBtn) return;
-
-    dashTouchBtn.addEventListener("click", function(){ SFX.dash(); addShake(0.08, 3); });
-    if (shieldTouchBtn) shieldTouchBtn.addEventListener("click", function(){ SFX.shield(); });
-    if (teleportTouchBtn) teleportTouchBtn.addEventListener("click", function(){ SFX.teleport(); addShake(0.08, 4); });
-    if (speedTouchBtn) speedTouchBtn.addEventListener("click", function(){ SFX.speed(); });
-    clearInterval(tryPatchTouch);
-  }, 500);
-
-  // coins / new best / progression feel
-  const oldUpdateV2 = update;
-  update = function(dt) {
-    oldUpdateV2(dt);
-
-    if (Math.floor(score) > save.bestScore && state === "play") {
-      save.bestScore = Math.floor(score);
-      saveGame();
-      if (!bestBanner.classList.contains("show")) showBestBanner();
-    }
-
-    if (bestBannerTimer > 0) {
-      bestBannerTimer -= dt;
-      if (bestBannerTimer <= 0 && bestBanner) bestBanner.classList.remove("show");
-    }
-
-    if (shakeTime > 0) {
-      shakeTime -= dt;
-      if (shakeTime <= 0) shakeStrength = 0;
-    }
-  };
-
-  // play coin sound without replacing large logic blocks
-  const oldCircleHit = circleHit;
-  circleHit = function(a, b) {
-    const hit = oldCircleHit(a, b);
-    if (hit && state === "play" && b && typeof b.pulse !== "undefined") {
-      SFX.coin();
-    }
-    return hit;
-  };
-
-  // stronger draw pass with shake / vignette
-  let builtVignette = null;
-  function getVignette() {
-    if (builtVignette) return builtVignette;
-    const v = gameCtx.createRadialGradient(GAME.w/2, GAME.h/2, GAME.h*0.10, GAME.w/2, GAME.h/2, GAME.h*0.72);
-    v.addColorStop(0, "rgba(0,0,0,0)");
-    v.addColorStop(1, "rgba(0,0,0,0.32)");
-    builtVignette = v;
-    return builtVignette;
-  }
-
-  const oldDrawGameV2 = drawGame;
-  drawGame = function() {
+  const oldDrawPlayerSafe = drawPlayer;
+  drawPlayer = function() {
+    oldDrawPlayerSafe();
     gameCtx.save();
-    if (shakeTime > 0 && shakeStrength > 0) {
-      const dx = (Math.random() * 2 - 1) * shakeStrength;
-      const dy = (Math.random() * 2 - 1) * shakeStrength;
-      gameCtx.translate(dx, dy);
-    }
-
-    oldDrawGameV2();
-
-    gameCtx.fillStyle = getVignette();
-    gameCtx.fillRect(0, 0, GAME.w, GAME.h);
+    gameCtx.beginPath();
+    gameCtx.strokeStyle = "rgba(255,255,255,0.14)";
+    gameCtx.lineWidth = 1.2;
+    gameCtx.arc(player.x, player.y, player.r + 1.5, 0, Math.PI * 2);
+    gameCtx.stroke();
     gameCtx.restore();
   };
-
-})();
-</script>
-
-
-<style id="ga-mature-pass">
-  :root {
-    --ga-bg-1: #050a12;
-    --ga-bg-2: #0a1424;
-    --ga-panel-1: rgba(8, 14, 26, 0.92);
-    --ga-panel-2: rgba(10, 16, 30, 0.86);
-    --ga-border: rgba(255,255,255,0.10);
-    --ga-soft: #9fb1c9;
-    --ga-text: #eef5ff;
-    --ga-accent: #6fd3ff;
-  }
-
-  body {
-    background:
-      radial-gradient(circle at 50% 10%, rgba(60,120,190,0.08), transparent 28%),
-      linear-gradient(180deg, var(--ga-bg-2), var(--ga-bg-1));
-  }
-
-  .card,
-  .hudBox,
-  .dockCard,
-  .shopItem,
-  .leaderRow,
-  .menuInfoBox,
-  .infoPanel {
-    background: var(--ga-panel-1) !important;
-    border: 1px solid var(--ga-border) !important;
-    box-shadow: 0 14px 34px rgba(0,0,0,0.24);
-    backdrop-filter: blur(8px);
-  }
-
-  .sub,
-  .priceText,
-  .sectionLabel,
-  .leaderNote,
-  .menuFeatureText,
-  .menuDescNew,
-  .menuUltraSub,
-  .menuUltraControls,
-  .menuFooterHint {
-    color: var(--ga-soft) !important;
-  }
-
-  h1, h2 {
-    letter-spacing: -0.02em;
-  }
-
-  button {
-    border-radius: 12px !important;
-    font-weight: 700;
-    box-shadow: 0 8px 18px rgba(20,120,200,0.10);
-  }
-
-  button.secondary {
-    background: rgba(255,255,255,0.05) !important;
-    color: var(--ga-text) !important;
-    box-shadow: none !important;
-  }
-
-  input {
-    border-radius: 12px !important;
-    background: rgba(245,249,255,0.96) !important;
-  }
-
-  #bestBanner {
-    background: rgba(9, 16, 28, 0.94) !important;
-    border-color: rgba(255,255,255,0.10) !important;
-  }
-
-  .menuUltraCard,
-  .menuCardRedesign,
-  .menuCardPremium {
-    background:
-      linear-gradient(180deg, rgba(8,14,26,0.97), rgba(6,10,18,0.97)),
-      radial-gradient(circle at 18% 0%, rgba(80,140,220,0.10), transparent 28%),
-      radial-gradient(circle at 82% 10%, rgba(120,90,200,0.08), transparent 24%) !important;
-  }
-
-  .menuTinyTag,
-  .menuKicker,
-  .menuEyebrow,
-  .menuBadge {
-    background: rgba(111, 211, 255, 0.09) !important;
-    color: #d6f4ff !important;
-    border-color: rgba(111, 211, 255, 0.16) !important;
-  }
-
-  .menuUltraTitle,
-  .menuTitleNew,
-  .menuTitlePremium {
-    background: linear-gradient(90deg, #ffffff, #d8ebff 36%, #ffffff 70%) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    color: transparent !important;
-    filter: drop-shadow(0 4px 16px rgba(120,160,220,0.12)) !important;
-  }
-
-  .menuMiniStat,
-  .menuFeature,
-  .menuStat {
-    background: rgba(255,255,255,0.035) !important;
-    border-color: rgba(255,255,255,0.07) !important;
-  }
-
-  .menuFeatureIcon {
-    background: rgba(255,255,255,0.04) !important;
-  }
-
-  #hudTop .hudBox,
-  .dockCard {
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 22px rgba(0,0,0,0.18);
-  }
-
-  .dockTitle,
-  .infoPanelTitle,
-  .menuInputLabel,
-  .menuStatLabel {
-    color: #8ea5c3 !important;
-  }
-
-  .leaderRank {
-    color: #8ea5c3 !important;
-  }
-
-  .leaderScore,
-  .dockValue,
-  .menuStatValue,
-  .menuFeatureTitle {
-    color: var(--ga-text) !important;
-  }
-</style>
-
-<script id="ga-mature-copy">
-(function () {
-  function replaceText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text;
-  }
-
-  window.addEventListener("load", function () {
-    replaceText("startBtn", "Begin Session");
-    replaceText("openShopFromMenu", "Store");
-    replaceText("openLeaderboardFromMenu", "Leaderboard");
-    replaceText("shopBtn", "Store");
-    replaceText("leaderboardBtn", "Leaderboard");
-
-    const sub = document.querySelector("#menuOverlay .sub");
-    if (sub) sub.textContent = "A refined arcade survival challenge built around movement, timing, and control.";
-
-    const controls = document.querySelector(".menuUltraControls");
-    if (controls) controls.textContent = "WASD / Arrows · Space · Q · E · Shift";
-  });
 })();
 </script>
 
