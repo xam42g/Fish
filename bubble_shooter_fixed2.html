@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bubble Shooter Fixed 2</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at top,#2c317d 0%,#151733 55%,#090a16 100%);font-family:Arial,sans-serif}
+canvas{width:min(92vw,430px);height:auto;border-radius:24px;background:#dcd8f5;box-shadow:0 24px 70px rgba(0,0,0,.45)}
+</style>
+</head>
+<body>
+<canvas id="c" width="430" height="780"></canvas>
+<script>
+const c=document.getElementById("c"),x=c.getContext("2d");
+const COLORS=["#ef3c4d","#24d65e","#2f6bff","#f2dd1f","#da2de2"];
+const R=18,DIAM=36,STEP_X=36,STEP_Y=31.2,TOP_Y=92,OFFSET_X=34,COLS=11,START_ROWS=10,SHOOT_Y=660,MIN_CLUSTER=3;
+let score=0,stars=0,shots=70,bubbles=[],shot=null,particles=[],last=performance.now(),aimAngle=-Math.PI/2;
+const shooter={x:c.width/2,y:SHOOT_Y,color:randColor(),next:randColor()};
+
+function randColor(){return COLORS[(Math.random()*COLORS.length)|0]}
+function rowCols(row){return COLS-(row%2)}
+function bubbleToPixel(gx,gy){const off=gy%2?STEP_X/2:0;return{x:OFFSET_X+gx*STEP_X+off,y:TOP_Y+gy*STEP_Y}}
+function pixelToGrid(px,py){const gy=Math.max(0,Math.round((py-TOP_Y)/STEP_Y));const off=gy%2?STEP_X/2:0;const gx=Math.round((px-OFFSET_X-off)/STEP_X);return{gx,gy}}
+function validCell(gx,gy){return gy>=0&&gx>=0&&gx<rowCols(gy)}
+function exists(gx,gy){return bubbles.some(b=>b.gx===gx&&b.gy===gy)}
+function getBubble(gx,gy){return bubbles.find(b=>b.gx===gx&&b.gy===gy)}
+function initGrid(){
+  bubbles=[];
+  for(let gy=0;gy<START_ROWS;gy++){
+    let prev=randColor();
+    for(let gx=0;gx<rowCols(gy);gx++){
+      let color=(Math.random()<0.58&&gx>0)?prev:randColor();
+      prev=color;
+      bubbles.push({gx,gy,color,pop:0});
+    }
+  }
+}
+initGrid();
+
+function clampAim(a){return Math.max(-Math.PI+0.18,Math.min(-0.18,a))}
+function pointerPos(e){const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
+function updateAim(mx,my){aimAngle=clampAim(Math.atan2(my-shooter.y,mx-shooter.x))}
+function fire(mx,my){
+  if(shot||shots<=0)return;
+  updateAim(mx,my);
+  shot={x:shooter.x,y:shooter.y,dx:Math.cos(aimAngle)*8.2,dy:Math.sin(aimAngle)*8.2,color:shooter.color,trail:[]};
+  shooter.color=shooter.next; shooter.next=randColor(); shots--;
+}
+c.addEventListener("mousemove",e=>{const p=pointerPos(e);updateAim(p.x,p.y)});
+c.addEventListener("click",e=>{const p=pointerPos(e);fire(p.x,p.y)});
+c.addEventListener("touchmove",e=>{e.preventDefault();const p=pointerPos(e.touches[0]);updateAim(p.x,p.y)},{passive:false});
+c.addEventListener("touchstart",e=>{e.preventDefault();const p=pointerPos(e.touches[0]);fire(p.x,p.y)},{passive:false});
+
+function neighbors(gx,gy){
+  const even=[[-1,0],[1,0],[0,-1],[-1,-1],[0,1],[-1,1]];
+  const odd=[[-1,0],[1,0],[1,-1],[0,-1],[1,1],[0,1]];
+  const deltas=gy%2?odd:even;
+  return deltas.map(([dx,dy])=>({gx:gx+dx,gy:gy+dy})).filter(p=>validCell(p.gx,p.gy));
+}
+function clusterFrom(start){
+  const first=getBubble(start.gx,start.gy); if(!first)return[];
+  const target=first.color,stack=[start],seen=new Set([start.gx+","+start.gy]),out=[];
+  while(stack.length){
+    const cur=stack.pop(); out.push(cur);
+    for(const n of neighbors(cur.gx,cur.gy)){
+      const key=n.gx+","+n.gy, b=getBubble(n.gx,n.gy);
+      if(!b||seen.has(key)||b.color!==target)continue;
+      seen.add(key); stack.push(n);
+    }
+  }
+  return out;
+}
+function connectedToTop(){
+  const seen=new Set(),stack=[];
+  for(let gx=0;gx<rowCols(0);gx++) if(exists(gx,0)){stack.push({gx,gy:0});seen.add(gx+",0")}
+  while(stack.length){
+    const cur=stack.pop();
+    for(const n of neighbors(cur.gx,cur.gy)){
+      const key=n.gx+","+n.gy;
+      if(seen.has(key)||!exists(n.gx,n.gy))continue;
+      seen.add(key); stack.push(n);
+    }
+  }
+  return seen;
+}
+function addBurst(px,py,color,count=10){
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2,s=1.4+Math.random()*3.4;
+    particles.push({x:px,y:py,dx:Math.cos(a)*s,dy:Math.sin(a)*s,life:24,color,size:2+Math.random()*3});
+  }
+}
+function removeCells(cells){
+  const set=new Set(cells.map(c=>c.gx+","+c.gy));
+  for(const cell of cells){
+    const p=bubbleToPixel(cell.gx,cell.gy), b=getBubble(cell.gx,cell.gy);
+    if(b)addBurst(p.x,p.y,b.color,12);
+  }
+  bubbles=bubbles.filter(b=>!set.has(b.gx+","+b.gy));
+}
+function recalcStars(){stars=score>=5000?3:score>=2500?2:score>=900?1:0}
+
+function snapTop(px){
+  let best=null,bestD=1e9;
+  for(let gx=0;gx<rowCols(0);gx++){
+    if(exists(gx,0))continue;
+    const p=bubbleToPixel(gx,0), d=Math.abs(px-p.x);
+    if(d<bestD){bestD=d;best={gx,gy:0}}
+  }
+  return best||{gx:0,gy:0};
+}
+function snapNearHit(px,py,target){
+  const free=neighbors(target.gx,target.gy).filter(n=>!exists(n.gx,n.gy));
+  if(!free.length) return snapTop(px);
+  let best=free[0],bestD=1e9;
+  for(const c0 of free){
+    const p=bubbleToPixel(c0.gx,c0.gy), d=Math.hypot(px-p.x,py-p.y);
+    if(d<bestD){bestD=d;best=c0}
+  }
+  return best;
+}
+function placeShot(mode,target){
+  if(!shot)return;
+  const cell=(mode==="top")?snapTop(shot.x):snapNearHit(shot.x,shot.y,target);
+  if(!validCell(cell.gx,cell.gy)||exists(cell.gx,cell.gy)){shot=null;return}
+  bubbles.push({gx:cell.gx,gy:cell.gy,color:shot.color,pop:0.22});
+  const group=clusterFrom(cell);
+  if(group.length>=MIN_CLUSTER){
+    score+=group.length*20;
+    removeCells(group);
+    const supported=connectedToTop();
+    const hanging=bubbles.filter(b=>!supported.has(b.gx+","+b.gy)).map(b=>({gx:b.gx,gy:b.gy}));
+    if(hanging.length){score+=hanging.length*10; removeCells(hanging)}
+    recalcStars();
+  }
+  shot=null;
+}
+
+function update(dt){
+  for(const b of bubbles)b.pop*=Math.pow(0.84,dt/16.67);
+  if(shot){
+    shot.trail.push({x:shot.x,y:shot.y,life:10});
+    if(shot.trail.length>7)shot.trail.shift();
+    shot.x+=shot.dx*dt/16.67; shot.y+=shot.dy*dt/16.67;
+    if(shot.x<R){shot.x=R;shot.dx*=-1}
+    if(shot.x>c.width-R){shot.x=c.width-R;shot.dx*=-1}
+    if(shot.y<=TOP_Y) placeShot("top");
+    else{
+      for(const b of bubbles){
+        const p=bubbleToPixel(b.gx,b.gy);
+        if(Math.hypot(shot.x-p.x,shot.y-p.y)<DIAM-2){placeShot("hit",b);break}
+      }
+    }
+    shot.trail.forEach(t=>t.life-=dt/2);
+    shot.trail=shot.trail.filter(t=>t.life>0);
+  }
+  particles=particles.filter(p=>p.life>0);
+  for(const p of particles){
+    p.x+=p.dx*dt/16.67; p.y+=p.dy*dt/16.67; p.dy+=0.05*dt/16.67; p.life-=dt/1.7;
+  }
+}
+
+function glossyBall(px,py,color,scale=1){
+  const rr=R*scale;
+  const g=x.createRadialGradient(px-rr*0.35,py-rr*0.35,2,px,py,rr);
+  g.addColorStop(0,"#fff"); g.addColorStop(0.18,"#fff"); g.addColorStop(1,color);
+  x.fillStyle=g; x.beginPath(); x.arc(px,py,rr,0,Math.PI*2); x.fill();
+  x.strokeStyle="rgba(0,0,0,0.18)"; x.lineWidth=2; x.stroke();
+  x.fillStyle="rgba(255,255,255,0.35)"; x.beginPath(); x.arc(px-rr*0.28,py-rr*0.32,rr*0.23,0,Math.PI*2); x.fill();
+}
+function roundRect(ctx,x0,y0,w,h,r){ctx.beginPath();ctx.moveTo(x0+r,y0);ctx.arcTo(x0+w,y0,x0+w,y0+h,r);ctx.arcTo(x0+w,y0+h,x0,y0+h,r);ctx.arcTo(x0,y0+h,x0,y0,r);ctx.arcTo(x0,y0,x0+w,y0,r);ctx.closePath()}
+function fillRound(ctx,x0,y0,w,h,r,fill,stroke=null){ctx.fillStyle=fill;roundRect(ctx,x0,y0,w,h,r);ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke()}}
+function drawStar(cx,cy,r,color){
+  x.save();x.translate(cx,cy);x.beginPath();
+  for(let i=0;i<5;i++){x.lineTo(Math.cos((18+i*72)*Math.PI/180)*r,-Math.sin((18+i*72)*Math.PI/180)*r);x.lineTo(Math.cos((54+i*72)*Math.PI/180)*r*0.45,-Math.sin((54+i*72)*Math.PI/180)*r*0.45)}
+  x.closePath();x.fillStyle=color;x.fill();x.restore();
+}
+function drawTopBar(){
+  const g=x.createLinearGradient(0,0,0,72);g.addColorStop(0,"#17183f");g.addColorStop(1,"#090b21");
+  x.fillStyle=g;x.fillRect(0,0,c.width,72);
+  fillRound(x,14,12,42,42,12,"#2748d6","#7ea0ff");
+  x.strokeStyle="white";x.lineWidth=4;for(let i=0;i<3;i++){x.beginPath();x.moveTo(24,24+i*9);x.lineTo(46,24+i*9);x.stroke()}
+  fillRound(x,108,11,148,32,16,"#091ad3","#324cff");
+  for(let i=0;i<5;i++)drawStar(128+i*25,27,11,i<stars?"#ffe42e":"#10207d");
+  x.fillStyle="white";x.font="bold 18px Arial";x.fillText(score.toLocaleString("de-DE"),300,34);
+}
+function drawBottomBar(){
+  const g=x.createLinearGradient(0,560,0,780);g.addColorStop(0,"#d1c9ef");g.addColorStop(1,"#c0b5ea");
+  x.fillStyle=g;x.fillRect(0,560,c.width,220);
+  x.strokeStyle="#7d78d7";x.lineWidth=3;x.beginPath();x.moveTo(0,560);x.lineTo(c.width,560);x.stroke();
+  fillRound(x,138,603,50,28,14,"#5148c8","#857df2");
+  x.fillStyle="white";x.font="bold 20px Arial";x.fillText(String(shots),150,623);
+}
+function drawAim(){
+  let px=shooter.x,py=shooter.y,dx=Math.cos(aimAngle),dy=Math.sin(aimAngle);
+  x.setLineDash([7,7]);x.strokeStyle="rgba(118,112,213,0.45)";x.lineWidth=3;
+  for(let bounce=0;bounce<3;bounce++){
+    let tWall=Infinity;
+    if(dx>0)tWall=(c.width-R-px)/dx; else if(dx<0)tWall=(R-px)/dx;
+    const tTop=(TOP_Y-py)/dy, t=Math.min(tWall,tTop);
+    const ex=px+dx*t, ey=py+dy*t;
+    x.beginPath();x.moveTo(px,py);x.lineTo(ex,ey);x.stroke();
+    if(tTop<tWall)break;
+    px=ex;py=ey;dx*=-1;
+  }
+  x.setLineDash([]);
+}
+function drawShooter(){drawAim();glossyBall(shooter.x,shooter.y,shooter.color,1.1);glossyBall(shooter.x+54,shooter.y+28,shooter.next,0.78)}
+function drawParticles(){
+  for(const p of particles){
+    x.globalAlpha=Math.max(0,p.life/24);x.fillStyle=p.color;x.beginPath();x.arc(p.x,p.y,p.size,0,Math.PI*2);x.fill();
+  }
+  x.globalAlpha=1;
+}
+function draw(){
+  x.clearRect(0,0,c.width,c.height);
+  x.fillStyle="#dcd8f5";x.fillRect(0,0,c.width,c.height);
+  drawTopBar();
+  for(const b of bubbles){const p=bubbleToPixel(b.gx,b.gy);glossyBall(p.x,p.y,b.color,1+b.pop)}
+  if(shot){
+    for(const t of shot.trail){x.globalAlpha=Math.max(0,t.life/10)*0.22;glossyBall(t.x,t.y,shot.color,0.8)}
+    x.globalAlpha=1; glossyBall(shot.x,shot.y,shot.color,1);
+  }
+  drawBottomBar(); drawShooter(); drawParticles();
+}
+function loop(now){
+  const dt=Math.min(33,now-last||16.67); last=now;
+  update(dt); draw(); requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
