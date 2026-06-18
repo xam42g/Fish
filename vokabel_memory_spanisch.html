@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spanisch-Vokabel-Memory</title>
+  <style>
+    :root{
+      --bg:#f4f7fb;--card:#ffffff;--ink:#172033;--muted:#607086;--accent:#2563eb;--ok:#16a34a;--bad:#dc2626;--line:#dbe4f0;
+      --shadow:0 10px 30px rgba(23,32,51,.10);--radius:18px;
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(135deg,#edf4ff,#f8fbff);color:var(--ink)}
+    header{max-width:1100px;margin:0 auto;padding:34px 18px 18px;text-align:center}
+    h1{margin:0;font-size:clamp(28px,5vw,48px);letter-spacing:-.04em} .sub{margin:10px auto 0;max-width:760px;color:var(--muted);font-size:16px;line-height:1.5}
+    .bar{max-width:1100px;margin:16px auto 0;padding:0 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .stat,.control{background:rgba(255,255,255,.82);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;text-align:center}
+    .label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800}.value{font-size:24px;font-weight:900;margin-top:2px}
+    .controls{max-width:1100px;margin:12px auto 0;padding:0 18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    button{border:0;border-radius:999px;padding:12px 18px;background:var(--accent);color:#fff;font-weight:900;cursor:pointer;box-shadow:0 8px 18px rgba(37,99,235,.22)}
+    button.secondary{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none} button:hover{filter:brightness(.97)}
+    main{max-width:1100px;margin:20px auto 42px;padding:0 18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px}
+    .card{height:135px;perspective:900px;cursor:pointer}.inner{width:100%;height:100%;position:relative;transition:transform .45s;transform-style:preserve-3d}.card.flipped .inner,.card.matched .inner{transform:rotateY(180deg)}
+    .face{position:absolute;inset:0;border-radius:20px;backface-visibility:hidden;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden}
+    .front{background:linear-gradient(145deg,#1d4ed8,#60a5fa);color:#fff;font-size:36px;font-weight:900}.front small{font-size:15px;display:block;margin-top:6px;opacity:.88}.back{background:var(--card);transform:rotateY(180deg);flex-direction:column;gap:7px}
+    .emoji{font-size:44px;line-height:1}.word{font-size:18px;font-weight:900}.hint{font-size:12px;color:var(--muted);font-weight:700}.matched .back{border-color:rgba(22,163,74,.45);background:#f0fdf4}.wrong .back{border-color:rgba(220,38,38,.45)}
+    .message{max-width:760px;margin:20px auto 0;padding:15px 18px;border-radius:var(--radius);background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);text-align:center;color:var(--muted);font-weight:700}
+    footer{text-align:center;color:var(--muted);font-size:12px;padding:0 18px 25px}
+    @media(max-width:760px){.bar{grid-template-columns:repeat(2,1fr)}.card{height:118px}.emoji{font-size:36px}.word{font-size:16px}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Spanisch-Vokabel-Memory</h1>
+  <p class="sub">Finde immer das passende Paar: <strong>Bild</strong> und <strong>spanisches Wort</strong>. Seriöses Lernspiel für Vokabeln zum Aussehen und Beschreiben von Personen.</p>
+</header>
+<section class="bar">
+  <div class="stat"><div class="label">Versuche</div><div class="value" id="moves">0</div></div>
+  <div class="stat"><div class="label">Gefunden</div><div class="value"><span id="found">0</span>/<span id="total">0</span></div></div>
+  <div class="stat"><div class="label">Zeit</div><div class="value" id="timer">00:00</div></div>
+  <div class="stat"><div class="label">Status</div><div class="value" id="status">Bereit</div></div>
+</section>
+<div class="controls">
+  <button id="restart">Neu mischen</button>
+  <button class="secondary" id="easy">Kurzes Spiel</button>
+  <button class="secondary" id="full">Alle Karten</button>
+</div>
+<main><div class="grid" id="game"></div><div class="message" id="message">Klicke auf zwei Karten. Bild und spanisches Wort müssen zusammenpassen.</div></main>
+<footer>Erstellt als einzelne HTML-Datei. Funktioniert offline im Browser.</footer>
+<script>
+const vocabulary = [
+  {id:'nino', word:'el niño / la niña', img:'🧒', hint:'Kind'},
+  {id:'bajo', word:'bajo / baja', img:'↘️', hint:'klein'},
+  {id:'delgado', word:'delgado / delgada', img:'🧍', hint:'schlank'},
+  {id:'pelo', word:'el pelo', img:'💇', hint:'Haare'},
+  {id:'largo', word:'largo / larga', img:'👩‍🦱', hint:'lang'},
+  {id:'castano', word:'castaño / castaña', img:'🟤', hint:'braun'},
+  {id:'rubio', word:'rubio / rubia', img:'🟡', hint:'blond'},
+  {id:'ojo', word:'el ojo', img:'👁️', hint:'Auge'},
+  {id:'pelirrojo', word:'pelirrojo / pelirroja', img:'🦰', hint:'rothaarig'},
+  {id:'liso', word:'liso / lisa', img:'➖', hint:'glatt'},
+  {id:'nadar', word:'nadar', img:'🏊', hint:'schwimmen'},
+  {id:'alto', word:'alto / alta', img:'↗️', hint:'groß'},
+  {id:'gafas', word:'las gafas', img:'👓', hint:'Brille'},
+  {id:'rizado', word:'rizado / rizada', img:'➰', hint:'lockig'},
+  {id:'modelo', word:'el modelo / la modelo', img:'🚶‍♀️', hint:'Model'},
+  {id:'describir', word:'describir', img:'📝', hint:'beschreiben'},
+  {id:'estatura', word:'la estatura', img:'📏', hint:'Körpergröße'},
+  {id:'claro', word:'claro / clara', img:'💡', hint:'hell'},
+  {id:'tatuaje', word:'el tatuaje', img:'🖊️', hint:'Tätowierung'},
+  {id:'piercing', word:'el piercing', img:'💎', hint:'Piercing'},
+  {id:'nariz', word:'la nariz', img:'👃', hint:'Nase'},
+  {id:'aspecto', word:'el aspecto físico', img:'🪞', hint:'Aussehen'}
+];
+let modeCount = 12, first=null, second=null, lock=false, moves=0, found=0, seconds=0, timerId=null;
+const game=document.getElementById('game'), movesEl=document.getElementById('moves'), foundEl=document.getElementById('found'), totalEl=document.getElementById('total'), timerEl=document.getElementById('timer'), statusEl=document.getElementById('status'), msg=document.getElementById('message');
+function shuffle(a){return [...a].sort(()=>Math.random()-0.5)}
+function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function startTimer(){if(timerId)return; timerId=setInterval(()=>{seconds++;timerEl.textContent=fmt(seconds)},1000)}
+function build(){clearInterval(timerId);timerId=null;first=second=null;lock=false;moves=found=seconds=0;movesEl.textContent='0';foundEl.textContent='0';timerEl.textContent='00:00';statusEl.textContent='Bereit';msg.textContent='Klicke auf zwei Karten. Bild und spanisches Wort müssen zusammenpassen.';
+ const set=shuffle(vocabulary).slice(0,modeCount); totalEl.textContent=set.length;
+ const cards=shuffle(set.flatMap(v=>[{...v,type:'image'},{...v,type:'word'}])); game.innerHTML='';
+ cards.forEach((c,i)=>{const el=document.createElement('div');el.className='card';el.dataset.id=c.id;el.dataset.type=c.type;el.innerHTML=`<div class="inner"><div class="face front">?</div><div class="face back">${c.type==='image'?`<div class="emoji">${c.img}</div><div class="hint">Bildkarte</div>`:`<div class="word">${c.word}</div><div class="hint">${c.hint}</div>`}</div></div>`; el.addEventListener('click',()=>flip(el)); game.appendChild(el);});
+}
+function flip(card){if(lock||card.classList.contains('flipped')||card.classList.contains('matched'))return; startTimer(); card.classList.add('flipped'); if(!first){first=card;return} second=card; lock=true; moves++;movesEl.textContent=moves; const match=first.dataset.id===second.dataset.id && first.dataset.type!==second.dataset.type;
+ if(match){first.classList.add('matched');second.classList.add('matched');found++;foundEl.textContent=found;statusEl.textContent='Treffer';msg.textContent='Richtig! Das Bild passt zum spanischen Wort.';resetPick(); if(found==Number(totalEl.textContent)){clearInterval(timerId);statusEl.textContent='Fertig';msg.textContent=`Sehr gut! Du hast alle Paare in ${moves} Versuchen und ${fmt(seconds)} gefunden.`}}
+ else{statusEl.textContent='Noch mal';msg.textContent='Nicht ganz. Merke dir die Karten und versuche es erneut.';first.classList.add('wrong');second.classList.add('wrong');setTimeout(()=>{first.classList.remove('flipped','wrong');second.classList.remove('flipped','wrong');resetPick()},850)}
+}
+function resetPick(){first=null;second=null;lock=false}
+document.getElementById('restart').onclick=build; document.getElementById('easy').onclick=()=>{modeCount=8;build()}; document.getElementById('full').onclick=()=>{modeCount=vocabulary.length;build()}; build();
+</script>
+</body>
+</html>
