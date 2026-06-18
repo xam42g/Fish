@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spanisch Memory: Bilder & Wörter</title>
+<style>
+  :root{--bg:#eef3f8;--card:#ffffff;--ink:#172033;--accent:#1f5eff;--ok:#159947;--bad:#b3261e;--muted:#657085;}
+  *{box-sizing:border-box} body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(135deg,#eef3f8,#dfe9f7);color:var(--ink);min-height:100vh}
+  header{max-width:1100px;margin:0 auto;padding:28px 18px 12px} h1{margin:0;font-size:clamp(26px,4vw,44px)}
+  .sub{color:var(--muted);margin-top:8px;font-size:16px}.bar{max-width:1100px;margin:10px auto 18px;padding:0 18px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .pill{background:#fff;border:1px solid #d8e1ee;border-radius:999px;padding:10px 14px;font-weight:700;box-shadow:0 4px 14px #00000012}.pill span{color:var(--accent)}
+  button{border:0;border-radius:999px;background:var(--accent);color:white;padding:11px 18px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px #1f5eff33}button:hover{filter:brightness(.95)}
+  main{max-width:1100px;margin:0 auto;padding:0 18px 30px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:14px}
+  .card{height:142px;perspective:900px;cursor:pointer}.inner{position:relative;width:100%;height:100%;transition:transform .45s;transform-style:preserve-3d}.card.open .inner,.card.done .inner{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:20px;display:flex;align-items:center;justify-content:center;text-align:center;box-shadow:0 10px 28px #00000018;border:1px solid #dfe7f2;overflow:hidden}
+  .front{background:linear-gradient(135deg,#1f5eff,#39a1ff);color:white;font-size:34px;font-weight:900}.front small{display:block;font-size:13px;margin-top:7px;letter-spacing:.08em;text-transform:uppercase;opacity:.9}
+  .back{background:var(--card);transform:rotateY(180deg);padding:10px;flex-direction:column;gap:6px}.card.done .back{outline:4px solid #32d27855;background:#f3fff7}
+  .pic{width:82px;height:82px;border-radius:18px;background:#f4f7fb;display:grid;place-items:center;margin-bottom:3px}.pic svg{width:72px;height:72px}.word{font-size:18px;font-weight:900}.hint{font-size:12px;color:var(--muted);font-weight:700}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#172033;color:#fff;padding:12px 18px;border-radius:999px;font-weight:800;box-shadow:0 8px 24px #0004;display:none}.win{display:none;margin:18px 0;padding:18px;border-radius:20px;background:#fff;border:1px solid #d8e1ee;box-shadow:0 8px 24px #0001}.win b{color:var(--ok)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Spanisch Memory</h1>
+  <div class="sub">Finde immer das passende Paar: schönes Bild und spanisches Wort.</div>
+</header>
+<section class="bar">
+  <div class="pill">Züge: <span id="moves">0</span></div>
+  <div class="pill">Gefunden: <span id="pairs">0</span>/<span id="total">0</span></div>
+  <div class="pill">Zeit: <span id="time">00:00</span></div>
+  <button onclick="restart()">Neu mischen</button>
+</section>
+<main><div class="win" id="win">Sehr gut! Du hast alle Paare gefunden. <b>¡Excelente!</b></div><div class="grid" id="grid"></div></main>
+<div class="toast" id="toast">Nicht gleich. Versuch es weiter!</div>
+<script>
+const vocab=[
+ {id:'nino',word:'el niño / la niña',hint:'Kind',svg:`<svg viewBox="0 0 100 100"><circle cx="50" cy="34" r="21" fill="#ffd6a5"/><path d="M26 32c5-18 38-22 48 0-13-8-28-8-48 0z" fill="#6b3f24"/><circle cx="43" cy="35" r="3"/><circle cx="57" cy="35" r="3"/><path d="M42 49q8 7 16 0" stroke="#b45309" stroke-width="3" fill="none"/><path d="M24 90c2-26 50-26 52 0" fill="#4f8cff"/></svg>`},
+ {id:'pelo',word:'el pelo',hint:'Haare',svg:`<svg viewBox="0 0 100 100"><circle cx="50" cy="48" r="24" fill="#ffd6a5"/><path d="M24 48c0-28 52-34 56 2-9-14-22-16-34-10-10 5-15 4-22 8z" fill="#5a3218"/><circle cx="42" cy="52" r="3"/><circle cx="58" cy="52" r="3"/><path d="M42 64q8 5 16 0" stroke="#a45b2a" stroke-width="3" fill="none"/></svg>`},
+ {id:'gafas',word:'las gafas',hint:'Brille',svg:`<svg viewBox="0 0 100 100"><circle cx="36" cy="50" r="18" fill="none" stroke="#202638" stroke-width="6"/><circle cx="64" cy="50" r="18" fill="none" stroke="#202638" stroke-width="6"/><path d="M54 50h-8M18 45l-8-8M82 45l8-8" stroke="#202638" stroke-width="5" stroke-linecap="round"/></svg>`},
+ {id:'ojo',word:'el ojo',hint:'Auge',svg:`<svg viewBox="0 0 100 100"><path d="M10 50s16-25 40-25 40 25 40 25-16 25-40 25-40-25-40-25z" fill="#fff" stroke="#26344d" stroke-width="5"/><circle cx="50" cy="50" r="17" fill="#55a6ff"/><circle cx="50" cy="50" r="8" fill="#111827"/><circle cx="56" cy="43" r="4" fill="#fff"/></svg>`},
+ {id:'nariz',word:'la nariz',hint:'Nase',svg:`<svg viewBox="0 0 100 100"><path d="M51 18c-6 18-10 35-15 50 4 9 22 10 29 0-7-12-9-30-14-50z" fill="#ffd6a5" stroke="#d08a56" stroke-width="4"/><circle cx="43" cy="68" r="3" fill="#8b5a2b"/><circle cx="58" cy="68" r="3" fill="#8b5a2b"/></svg>`},
+ {id:'tatuaje',word:'el tatuaje',hint:'Tattoo',svg:`<svg viewBox="0 0 100 100"><path d="M27 15h35c16 0 16 20 3 22 18 1 18 28-2 28H27z" fill="#ffd6a5" stroke="#c08457" stroke-width="4"/><path d="M39 45l8-16 8 16 17 2-13 11 4 17-16-9-16 9 4-17-13-11z" fill="none" stroke="#1f5eff" stroke-width="4" stroke-linejoin="round"/></svg>`},
+ {id:'piercing',word:'el piercing',hint:'Piercing',svg:`<svg viewBox="0 0 100 100"><circle cx="50" cy="45" r="24" fill="#ffd6a5"/><path d="M38 35h24" stroke="#6b3f24" stroke-width="8" stroke-linecap="round"/><circle cx="44" cy="46" r="3"/><circle cx="58" cy="46" r="3"/><path d="M46 58q6 5 12 0" stroke="#b45309" stroke-width="3" fill="none"/><circle cx="66" cy="57" r="6" fill="none" stroke="#c0c7d2" stroke-width="4"/></svg>`},
+ {id:'alto',word:'alto / alta',hint:'groß',svg:`<svg viewBox="0 0 100 100"><rect x="18" y="22" width="12" height="58" rx="6" fill="#9aa7bd"/><circle cx="65" cy="22" r="11" fill="#ffd6a5"/><path d="M65 34v35M50 47h30M56 90l9-21 9 21" stroke="#1f5eff" stroke-width="9" stroke-linecap="round" fill="none"/></svg>`},
+ {id:'bajo',word:'bajo / baja',hint:'klein',svg:`<svg viewBox="0 0 100 100"><rect x="16" y="15" width="12" height="70" rx="6" fill="#9aa7bd"/><circle cx="62" cy="42" r="12" fill="#ffd6a5"/><path d="M62 55v22M47 63h30M54 90l8-13 8 13" stroke="#2eb67d" stroke-width="9" stroke-linecap="round" fill="none"/></svg>`},
+ {id:'nadar',word:'nadar',hint:'schwimmen',svg:`<svg viewBox="0 0 100 100"><path d="M8 70q10-8 20 0t20 0 20 0 24 0" fill="none" stroke="#38a3ff" stroke-width="8" stroke-linecap="round"/><circle cx="42" cy="35" r="11" fill="#ffd6a5"/><path d="M20 55c20-22 42-4 61-18" stroke="#1f5eff" stroke-width="9" stroke-linecap="round" fill="none"/></svg>`},
+ {id:'rubio',word:'rubio / rubia',hint:'blond',svg:`<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="24" fill="#ffd6a5"/><path d="M24 48c1-31 52-31 52 0-16-12-34-10-52 0z" fill="#f5c542"/><circle cx="43" cy="52" r="3"/><circle cx="57" cy="52" r="3"/></svg>`},
+ {id:'rizado',word:'rizado / rizada',hint:'lockig',svg:`<svg viewBox="0 0 100 100"><circle cx="50" cy="54" r="22" fill="#ffd6a5"/><g fill="none" stroke="#4b2e16" stroke-width="7"><circle cx="30" cy="36" r="9"/><circle cx="45" cy="27" r="9"/><circle cx="62" cy="30" r="9"/><circle cx="73" cy="44" r="9"/><circle cx="25" cy="51" r="8"/></g><circle cx="43" cy="55" r="3"/><circle cx="57" cy="55" r="3"/></svg>`},
+];
+let deck=[],first=null,lock=false,moves=0,pairs=0,start=null,timer=null;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function cardHTML(c,i){const isPic=c.type==='pic';return `<div class="card" data-id="${c.id}" data-i="${i}"><div class="inner"><div class="face front">¿?<small>Memory</small></div><div class="face back">${isPic?`<div class="pic">${c.svg}</div><div class="hint">${c.hint}</div>`:`<div class="word">${c.word}</div><div class="hint">Spanisch</div>`}</div></div></div>`}
+function restart(){deck=shuffle(vocab.flatMap(v=>[{...v,type:'pic'},{...v,type:'word'}]));first=null;lock=false;moves=0;pairs=0;start=null;clearInterval(timer);document.getElementById('moves').textContent=0;document.getElementById('pairs').textContent=0;document.getElementById('total').textContent=vocab.length;document.getElementById('time').textContent='00:00';document.getElementById('win').style.display='none';document.getElementById('grid').innerHTML=deck.map(cardHTML).join('');document.querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>flip(c)))}
+function tick(){const s=Math.floor((Date.now()-start)/1000),m=String(Math.floor(s/60)).padStart(2,'0'),r=String(s%60).padStart(2,'0');document.getElementById('time').textContent=`${m}:${r}`}
+function flip(el){if(lock||el.classList.contains('open')||el.classList.contains('done'))return;if(!start){start=Date.now();timer=setInterval(tick,1000)}el.classList.add('open');if(!first){first=el;return}moves++;document.getElementById('moves').textContent=moves;const ok=first.dataset.id===el.dataset.id&&first.dataset.i!==el.dataset.i;if(ok){first.classList.add('done');el.classList.add('done');first=null;pairs++;document.getElementById('pairs').textContent=pairs;if(pairs===vocab.length){clearInterval(timer);document.getElementById('win').style.display='block'}return}lock=true;showToast();setTimeout(()=>{first.classList.remove('open');el.classList.remove('open');first=null;lock=false},850)}
+function showToast(){const t=document.getElementById('toast');t.style.display='block';setTimeout(()=>t.style.display='none',700)}
+restart();
+</script>
+</body>
+</html>
